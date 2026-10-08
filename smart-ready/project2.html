@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f7f7fb">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AI Builder — Smart Planner</title>
+
+    <link rel="stylesheet" href="css/style.css?v=5">
+    <link rel="stylesheet" href="css/project2.css?v=1">
+    <script type="module" src="js/project2.js?v=1"></script>
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">AI</div>
+                <div>
+                    <h1>AI Builder</h1>
+                    <p>Build real AI products</p>
+                </div>
+            </div>
+            <div class="build-pill">Build 0.2</div>
+        </header>
+
+        <nav class="project-nav" aria-label="Projects">
+            <a href="index.html">Project 1</a>
+            <a href="project2.html" class="active">Project 2</a>
+        </nav>
+
+        <section class="hero-card project-two-hero">
+            <div class="eyebrow">Project 2</div>
+            <h2>Smart Planner</h2>
+            <p>Give a real local LLM your plan and turn its structured answer into a useful checklist.</p>
+
+            <div class="local-badges">
+                <span>Runs on your device</span>
+                <span>$0 API cost</span>
+                <span>No API key</span>
+            </div>
+
+            <div class="progress-track" aria-label="Project progress">
+                <span id="progressBar"></span>
+            </div>
+            <div class="progress-row">
+                <span id="progressText">Step 1 of 6</span>
+                <span id="progressPct">16%</span>
+            </div>
+        </section>
+
+        <section id="workspace" class="main-card" aria-live="polite"></section>
+
+        <section class="ali-card">
+            <div class="ali-row">
+                <div class="ali-avatar">AI</div>
+                <div>
+                    <strong>AI Help</strong>
+                    <p id="helpText">Tell the planner what you are doing.</p>
+                </div>
+            </div>
+            <div class="help-actions">
+                <button id="explainBtn" type="button" class="help-button">Explain</button>
+                <button id="hintBtn" type="button" class="help-button primary-help">Hint</button>
+            </div>
+            <div id="helpBox" class="help-box hidden"></div>
+        </section>
+    </main>
+</body>
+</html>
