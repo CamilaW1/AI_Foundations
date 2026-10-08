@@ -427,6 +427,21 @@ function renderCollect() {
 
     paintPhotoGrid();
 
+    const restoredVideo = document.getElementById("trainingVideo");
+    const restoredPlaceholder = document.getElementById("cameraPlaceholder");
+    const restoredCaptureButton = document.getElementById("capturePhoto");
+    const restoredStartButton = document.getElementById("startCamera");
+
+    if (state.cameraStream && restoredVideo) {
+        restoredVideo.srcObject = state.cameraStream;
+        restoredVideo.classList.remove("hidden");
+        restoredPlaceholder.classList.add("hidden");
+        restoredCaptureButton.disabled = selectedPhotos.length >= PHOTO_COUNT;
+        restoredStartButton.disabled = true;
+        restoredStartButton.textContent = "Camera on ✓";
+        restoredVideo.play().catch(() => {});
+    }
+
     workspace.querySelectorAll("[data-class-index]").forEach(button => {
         button.addEventListener("click", () => {
             state.selectedClassIndex = Number(button.dataset.classIndex);
