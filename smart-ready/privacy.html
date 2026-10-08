@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f7f7fb">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AI Builder — Privacy & Data Use</title>
+
+    <link rel="stylesheet" href="css/style.css?v=7">
+    <link rel="stylesheet" href="css/privacy.css?v=1">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand privacy-brand" href="index.html" aria-label="Back to AI Builder">
+                <div class="brand-mark">AI</div>
+                <div>
+                    <h1>AI Builder</h1>
+                    <p>Privacy & Data Use</p>
+                </div>
+            </a>
+            <div class="build-pill">Privacy</div>
+        </header>
+
+        <nav class="project-nav" aria-label="Projects">
+            <a href="index.html">Project 1</a>
+            <a href="project2.html">Project 2</a>
+            <a href="project3.html">Project 3</a>
+        </nav>
+
+        <section class="hero-card privacy-hero">
+            <div class="eyebrow">Privacy & Data Use</div>
+            <h2>What stays on your device — and what leaves it</h2>
+            <p>This page describes the current Smart Ready learning prototype. It is written in plain language so users can understand how camera, calendar, weather and local AI features use data.</p>
+            <div class="privacy-badges">
+                <span>No paid AI API</span>
+                <span>No account required by the app</span>
+                <span>Local AI processing</span>
+            </div>
+        </section>
+
+        <section class="privacy-grid">
+            <article class="privacy-card local-card">
+                <div class="privacy-icon">📱</div>
+                <div>
+                    <h2>Stays on your device</h2>
+                    <p>The app is designed so the most personal learning data stays in the browser whenever possible.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <strong>Camera photos</strong>
+                    <p>Project 1 processes captured training photos in the browser for the image classifier. This prototype does not intentionally upload those photos to an AI server.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <strong>Local LLM prompts and answers</strong>
+                    <p>Projects 2 and 3 use a browser-based local LLM through WebLLM. The app does not send those prompts to OpenAI or another paid cloud LLM API.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <strong>Imported calendar files</strong>
+                    <p>Project 3 reads imported <code>.ics</code> calendar files in the browser. The original calendar file is not intentionally uploaded by this app.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <strong>Saved checklist data</strong>
+                    <p>Some confirmed checklist/context data may be stored in your browser's <code>localStorage</code> on that device so the prototype can remember it locally.</p>
+                </div>
+            </article>
+
+            <article class="privacy-card external-card">
+                <div class="privacy-icon">🌐</div>
+                <div>
+                    <h2>Data sent to external services</h2>
+                    <p>Some features need files or data from third-party services. The app tries to send only what is needed.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <strong>Weather</strong>
+                    <p>In Project 3, the city name you type is sent to Open-Meteo's geocoding service. The resulting coordinates are then used to request current weather. The app does not request your browser's precise GPS location for this feature.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <strong>Libraries and model files</strong>
+                    <p>The browser downloads JavaScript libraries and local-model files from third-party hosting/CDN services. Like normal web requests, those providers may receive technical request information such as IP address, browser/device details and request time.</p>
+                </div>
+
+                <div class="privacy-item">
+                    <strong>Website hosting</strong>
+                    <p>The site is currently served through GitHub Pages. GitHub may process standard web request information as part of hosting and security operations.</p>
+                </div>
+            </article>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">Permissions</div>
+            <h2 class="section-title">You choose when sensitive features start</h2>
+
+            <div class="permission-row">
+                <span class="permission-icon">📷</span>
+                <div>
+                    <strong>Camera</strong>
+                    <p>The browser asks for camera permission when you choose to start the camera. You can deny or revoke permission in browser settings.</p>
+                </div>
+            </div>
+
+            <div class="permission-row">
+                <span class="permission-icon">📅</span>
+                <div>
+                    <strong>Calendar</strong>
+                    <p>The current Project 3 prototype does not ask for your Google/Microsoft calendar password or automatic account access. You choose an <code>.ics</code> file yourself or add events manually.</p>
+                </div>
+            </div>
+
+            <div class="permission-row">
+                <span class="permission-icon">📍</span>
+                <div>
+                    <strong>Location</strong>
+                    <p>The current weather flow asks you to type a city. It does not request precise browser geolocation.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">Storage & deletion</div>
+            <h2 class="section-title">How to clear local data</h2>
+            <p class="section-copy">Refreshing the page can clear temporary in-memory data such as the current camera classifier. Data saved in <code>localStorage</code> may remain until the site's browser storage is cleared.</p>
+
+            <div class="clear-box">
+                <strong>To remove locally saved prototype data:</strong>
+                <p>Open your browser's site settings for this website and clear site data/storage. You can also remove camera permission there.</p>
+            </div>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">AI safety</div>
+            <h2 class="section-title">AI suggestions can be wrong</h2>
+            <p class="section-copy">Generated checklists are suggestions, not guarantees. The product intentionally includes a review step before a checklist is treated as final. Do not rely on this prototype for safety-critical, medical, legal or emergency decisions.</p>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">Children & sensitive information</div>
+            <h2 class="section-title">Keep the prototype low-data</h2>
+            <p class="section-copy">The app does not need names, birthdays, passwords, medical information, financial information or other sensitive personal details to demonstrate these projects. Avoid entering sensitive information into plans, event titles or checklists.</p>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">Tracking & advertising</div>
+            <h2 class="section-title">Current prototype</h2>
+            <p class="section-copy">The Smart Ready project currently does not intentionally include advertising, an advertising SDK, or first-party analytics/tracking code. Hosting providers and external resource providers may still process standard technical request information when your browser connects to them.</p>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">Third-party services</div>
+            <h2 class="section-title">Services used today</h2>
+            <div class="service-list">
+                <div><strong>GitHub Pages</strong><span>Static website hosting</span></div>
+                <div><strong>TensorFlow.js / MobileNet / KNN</strong><span>Project 1 browser vision</span></div>
+                <div><strong>WebLLM / SmolLM2</strong><span>Projects 2–3 local browser LLM</span></div>
+                <div><strong>Open-Meteo</strong><span>Project 3 city search and weather</span></div>
+            </div>
+            <p class="small-legal">Third-party services have their own privacy practices and terms. This notice describes how the current Smart Ready code is designed to use them; it is not a substitute for those providers' policies.</p>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">Cost rule</div>
+            <h2 class="section-title">No paid AI service is enabled</h2>
+            <p class="section-copy">The current projects do not use a paid OpenAI API or another paid cloud LLM API. Any future feature that can create token, API, credit or usage-based charges must be reviewed and explicitly approved before it is connected.</p>
+        </section>
+
+        <section class="main-card privacy-update">
+            <strong>Last updated: October 8, 2026</strong>
+            <p>This page should be updated whenever the app adds a new external service, account connection, analytics tool, cloud AI model or new type of stored data.</p>
+        </section>
+
+        <footer class="site-footer">
+            <a href="index.html">Project 1</a>
+            <a href="project2.html">Project 2</a>
+            <a href="project3.html">Project 3</a>
+            <a href="privacy.html" aria-current="page">Privacy & Data Use</a>
+        </footer>
+    </main>
+</body>
+</html>
