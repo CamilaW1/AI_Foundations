@@ -34,11 +34,11 @@ const explanations = {
 };
 
 const hints = {
-    1: "Include the activity, destination, timing, and constraints when they matter. Example: “Work, then swimming, and I only have one backpack.”",
-    2: "The useful information is the user's plan — not visual details about the website.",
+    1: "Add useful context when it matters: activity, destination, timing, or limits such as carry-on only.",
+    2: "The prompt should clearly describe the user's plan and ask for a structured checklist.",
     3: "Load the local model first. The first download is large, but the browser can cache it for later visits.",
-    4: "For an app, organized fields are easier to use than a creative paragraph.",
-    5: "Keep the human in control: review, remove, add, then confirm.",
+    4: "Structured JSON gives the app event names and item lists it can use directly.",
+    5: "Review the AI suggestions, remove anything unnecessary, and add anything missing.",
     6: "The next connection is camera verification from Project 1."
 };
 
@@ -110,35 +110,21 @@ function renderPlan() {
 }
 
 function renderPromptLesson() {
-    setHelp("Now decide what information belongs in the prompt. A correct choice moves you forward automatically.");
+    setHelp("The app now turns your plan into a clear instruction for the local AI.");
+
+    state.prompt = buildPrompt(state.plan);
 
     workspace.innerHTML = `
         <div class="eyebrow">Prompt building</div>
-        <h2 class="section-title">What should we give the AI?</h2>
-        <p class="section-copy">We want the model to create a useful packing or preparation checklist.</p>
+        <h2 class="section-title">Turn your plan into an AI instruction</h2>
+        <p class="section-copy">The prompt combines your real plan with a clear request for a structured checklist.</p>
 
-        <button class="lesson-choice" data-answer="correct">🎯 The user's plan and a clear instruction</button>
-        <button class="lesson-choice" data-answer="wrong">🎨 The website colors and button style</button>
+        <div class="prompt-box">${escapeHtml(state.prompt)}</div>
 
-        <div id="feedback" class="feedback">Choose one answer.</div>
+        <button id="continuePrompt" type="button" class="button" style="width:100%;margin-top:14px">Run this with local AI →</button>
     `;
 
-    workspace.querySelectorAll("[data-answer]").forEach(button => {
-        button.addEventListener("click", () => {
-            workspace.querySelectorAll("[data-answer]").forEach(item => item.classList.remove("correct", "wrong"));
-
-            if (button.dataset.answer === "wrong") {
-                button.classList.add("wrong");
-                document.getElementById("feedback").textContent = "Try the other option.";
-                return;
-            }
-
-            button.classList.add("correct");
-            document.getElementById("feedback").textContent = "Correct ✓ Building the prompt…";
-            state.prompt = buildPrompt(state.plan);
-            setTimeout(() => setStep(3), 350);
-        });
-    });
+    document.getElementById("continuePrompt").addEventListener("click", () => setStep(3));
 }
 
 function buildPrompt(plan) {
@@ -324,37 +310,19 @@ function normalizeChecklist(result) {
 }
 
 function renderStructuredLesson() {
-    setHelp("The local model returned structured data. Choose why this format is useful for an application.");
+    setHelp("The local model returned structured JSON. The app can now turn this data directly into a checklist.");
 
     workspace.innerHTML = `
         <div class="eyebrow">Structured output</div>
-        <h2 class="section-title">The AI returned data, not just a paragraph</h2>
-        <p class="section-copy">This is the information your JavaScript can reliably turn into interface elements.</p>
+        <h2 class="section-title">AI returned organized data</h2>
+        <p class="section-copy">Instead of a paragraph, the model returned event names and item lists in a predictable structure.</p>
 
         <div class="json-box raw-response">${escapeHtml(JSON.stringify(state.aiResult, null, 2))}</div>
 
-        <h3 style="margin:18px 0 8px">Which output is easier for the app to use?</h3>
-        <button class="lesson-choice" data-answer="correct">🧩 Organized JSON with named fields</button>
-        <button class="lesson-choice" data-answer="wrong">📝 One creative paragraph with changing formatting</button>
-
-        <div id="feedback" class="feedback">Choose one answer.</div>
+        <button id="buildChecklist" type="button" class="button" style="width:100%;margin-top:14px">Build the checklist →</button>
     `;
 
-    workspace.querySelectorAll("[data-answer]").forEach(button => {
-        button.addEventListener("click", () => {
-            workspace.querySelectorAll("[data-answer]").forEach(item => item.classList.remove("correct", "wrong"));
-
-            if (button.dataset.answer === "wrong") {
-                button.classList.add("wrong");
-                document.getElementById("feedback").textContent = "Try the other option.";
-                return;
-            }
-
-            button.classList.add("correct");
-            document.getElementById("feedback").textContent = "Correct ✓ Turning JSON into a checklist…";
-            setTimeout(() => setStep(5), 350);
-        });
-    });
+    document.getElementById("buildChecklist").addEventListener("click", () => setStep(5));
 }
 
 function renderReview() {
