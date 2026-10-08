@@ -98,6 +98,32 @@ input:focus-visible {
     font-weight: 800;
 }
 
+.project-nav {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 5px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: white;
+}
+
+.project-nav a {
+    padding: 10px 12px;
+    border-radius: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.project-nav a.active {
+    color: white;
+    background: var(--accent);
+}
+
 .hero-card {
     margin-bottom: 14px;
     padding: 20px;
