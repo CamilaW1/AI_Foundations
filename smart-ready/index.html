@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f7f7fb">
+    <title>AI Builder — Smart Bag Detector</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.6/dist/knn-classifier.min.js"></script>
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">AI</div>
+                <div>
+                    <h1>AI Builder</h1>
+                    <p>Build real AI products</p>
+                </div>
+            </div>
+            <div class="build-pill">Build 0.1</div>
+        </header>
+
+        <section class="hero-card">
+            <div class="eyebrow">Project 1</div>
+            <h2>Smart Bag Detector</h2>
+            <p>Train AI with your own photos, test it, then teach your app when to say “Not sure”.</p>
+
+            <div class="progress-track" aria-label="Project progress">
+                <span id="progressBar"></span>
+            </div>
+            <div class="progress-row">
+                <span id="progressText">Step 1 of 6</span>
+                <span id="progressPct">16%</span>
+            </div>
+        </section>
+
+        <section id="workspace" class="main-card" aria-live="polite"></section>
+
+        <section class="ali-card">
+            <div class="ali-row">
+                <div class="ali-avatar">A</div>
+                <div>
+                    <strong>Ali</strong>
+                    <p id="aliText">Choose the kind of bag you want to prepare.</p>
+                </div>
+            </div>
+            <div class="help-actions">
+                <button id="explainBtn" type="button" class="help-button">Explain</button>
+                <button id="hintBtn" type="button" class="help-button primary-help">Hint</button>
+            </div>
+        </section>
+    </main>
+
+    <div id="modalBack" class="modal-back" aria-hidden="true">
+        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <div class="modal-head">
+                <div>
+                    <div id="modalType" class="eyebrow">Hint</div>
+                    <h3 id="modalTitle">Need help?</h3>
+                </div>
+                <button id="closeModal" type="button" class="close-button" aria-label="Close">×</button>
+            </div>
+            <div id="modalBody"></div>
+        </section>
+    </div>
+
+    <canvas id="captureCanvas" class="hidden" width="640" height="480"></canvas>
+</body>
+</html>
