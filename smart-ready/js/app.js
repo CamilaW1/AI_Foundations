@@ -257,8 +257,7 @@ function renderBag() {
             `).join("")}
         </div>
         <div class="footer-row">
-            <span class="status-pill">No coding yet — define the problem.</span>
-            <button id="continue" type="button" class="button" ${state.bagType ? "" : "disabled"}>Continue →</button>
+            <span class="status-pill">Tap a bag to continue automatically.</span>
         </div>
     `;
 
@@ -266,11 +265,12 @@ function renderBag() {
         button.addEventListener("click", () => {
             state.bagType = button.dataset.bag;
             state.items = [...suggested[state.bagType]];
-            renderBag();
+            button.classList.add("selected");
+            button.disabled = true;
+            setAli(`${button.querySelector("strong").textContent} selected. Moving to your items…`);
+            setTimeout(nextStep, 180);
         });
     });
-
-    document.getElementById("continue")?.addEventListener("click", nextStep);
 }
 
 function renderItems() {
