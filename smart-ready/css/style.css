@@ -838,3 +838,27 @@ input:focus-visible {
         font-size: 13px;
     }
 }
+
+
+.site-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 14px;
+    padding: 10px 6px 4px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.site-footer a {
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 750;
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible,
+.site-footer a[aria-current="page"] {
+    color: #4050d8;
+    text-decoration: underline;
+}
