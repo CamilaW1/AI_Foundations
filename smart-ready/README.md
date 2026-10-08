@@ -37,10 +37,12 @@ smart-ready/
 ├── index.html
 ├── project2.html
 ├── project3.html
+├── privacy.html
 ├── css/
 │   ├── style.css
 │   ├── project2.css
-│   └── project3.css
+│   ├── project3.css
+│   └── privacy.css
 └── js/
     ├── app.js
     ├── project2.js
@@ -69,3 +71,8 @@ smart-ready/
 AI-generated checklists can be incomplete or wrong. The app is designed to require user review before a list is treated as final.
 
 No paid AI/API service should be added to this project without explicit approval from the project owner.
+
+
+## Privacy page
+
+The site includes a plain-language Privacy & Data Use page at `privacy.html`. It explains which data stays on-device, which requests go to external services, browser permissions, localStorage, third-party resources, AI limitations and the rule that paid AI/API services require explicit approval before they are connected.
