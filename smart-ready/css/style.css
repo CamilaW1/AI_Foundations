@@ -862,3 +862,95 @@ input:focus-visible {
     color: #4050d8;
     text-decoration: underline;
 }
+
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.install-app-button {
+    min-height: 38px;
+    padding: 8px 11px;
+    border: 0;
+    border-radius: 999px;
+    color: white;
+    background: var(--accent);
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.install-app-button.installed,
+.install-app-button:disabled {
+    color: #257a52;
+    background: #ecf8f2;
+    cursor: default;
+}
+
+.install-guide {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: end center;
+    padding: 14px;
+    background: rgba(18, 22, 34, 0.52);
+}
+
+.install-guide-card {
+    position: relative;
+    width: min(520px, 100%);
+    padding: 22px;
+    border-radius: 24px;
+    background: white;
+    box-shadow: 0 18px 50px rgba(18, 22, 34, 0.22);
+}
+
+.install-guide-card h2 {
+    margin: 8px 0 8px;
+}
+
+.install-guide-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+}
+
+.install-guide-note {
+    margin-top: 10px !important;
+    font-size: 12px;
+}
+
+.install-guide-icon {
+    font-size: 36px;
+}
+
+.install-guide-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 11px;
+    background: #f2f3f7;
+    font-size: 20px;
+}
+
+@media (max-width: 560px) {
+    .topbar {
+        align-items: flex-start;
+    }
+
+    .topbar-actions {
+        flex-direction: column-reverse;
+        align-items: flex-end;
+        gap: 5px;
+    }
+
+    .install-app-button {
+        min-height: 34px;
+        padding: 7px 10px;
+    }
+}
