@@ -9,12 +9,19 @@
     <meta http-equiv="Expires" content="0">
     <title>AI Builder — Smart Bag Detector</title>
 
-    <link rel="stylesheet" href="css/style.css?v=7">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI Builder">
+
+    <link rel="stylesheet" href="css/style.css?v=8">
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.6/dist/knn-classifier.min.js"></script>
-    <script src="js/app.js?v=7" defer></script>
+    <script src="js/app.js?v=8" defer></script>
+    <script src="js/pwa.js?v=1" defer></script>
 </head>
 <body>
     <main class="app-shell">
@@ -26,7 +33,10 @@
                     <p>Build real AI products</p>
                 </div>
             </div>
-            <div class="build-pill">Build 0.1</div>
+            <div class="topbar-actions">
+                <button id="installAppButton" type="button" class="install-app-button">Install app</button>
+                <div class="build-pill">Build 0.1</div>
+            </div>
         </header>
 
         <nav class="project-nav" aria-label="Projects">
