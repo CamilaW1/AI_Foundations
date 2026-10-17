@@ -9,9 +9,16 @@
     <meta http-equiv="Expires" content="0">
     <title>AI Builder — Connected Smart Assistant</title>
 
-    <link rel="stylesheet" href="css/style.css?v=7">
-    <link rel="stylesheet" href="css/project3.css?v=2">
-    <script type="module" src="js/project3.js?v=2"></script>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI Builder">
+
+    <link rel="stylesheet" href="css/style.css?v=8">
+    <link rel="stylesheet" href="css/project3.css?v=3">
+    <script type="module" src="js/project3.js?v=3"></script>
+    <script src="js/pwa.js?v=1" defer></script>
 </head>
 <body>
     <main class="app-shell">
@@ -23,7 +30,10 @@
                     <p>Build real AI products</p>
                 </div>
             </div>
-            <div class="build-pill">Build 0.3</div>
+            <div class="topbar-actions">
+                <button id="installAppButton" type="button" class="install-app-button">Install app</button>
+                <div class="build-pill">Build 0.3</div>
+            </div>
         </header>
 
         <nav class="project-nav" aria-label="Projects">
