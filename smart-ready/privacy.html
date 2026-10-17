@@ -9,8 +9,15 @@
     <meta http-equiv="Expires" content="0">
     <title>AI Builder — Privacy & Data Use</title>
 
-    <link rel="stylesheet" href="css/style.css?v=7">
-    <link rel="stylesheet" href="css/privacy.css?v=1">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI Builder">
+
+    <link rel="stylesheet" href="css/style.css?v=8">
+    <link rel="stylesheet" href="css/privacy.css?v=2">
+    <script src="js/pwa.js?v=1" defer></script>
 </head>
 <body>
     <main class="app-shell">
@@ -22,7 +29,10 @@
                     <p>Privacy & Data Use</p>
                 </div>
             </a>
-            <div class="build-pill">Privacy</div>
+            <div class="topbar-actions">
+                <button id="installAppButton" type="button" class="install-app-button">Install app</button>
+                <div class="build-pill">Privacy</div>
+            </div>
         </header>
 
         <nav class="project-nav" aria-label="Projects">
