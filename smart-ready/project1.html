@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f7f7fb">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AI Builder — Build 1: See</title>
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/style.css?v=20">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.6/dist/knn-classifier.min.js"></script>
+    <script src="js/app.js?v=20" defer></script>
+    <script src="js/pwa.js?v=2" defer></script>
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand brand-link" href="index.html">
+                <div class="brand-mark">AI</div>
+                <div>
+                    <h1>AI Builder</h1>
+                    <p>Smart Ready</p>
+                </div>
+            </a>
+            <div class="build-pill">Build 1 · See</div>
+        </header>
+
+        <nav class="journey-nav" aria-label="Learning path">
+            <a href="project1.html" class="active">1 See</a>
+            <a href="project2.html">2 Plan</a>
+            <a href="project3.html">3 Connect</a>
+            <a href="project4.html">4 Act</a>
+            <a href="project5.html">5 Remember</a>
+            <a href="project6.html">6 Trust</a>
+        </nav>
+
+        <section class="hero-card">
+            <div class="eyebrow">Build 1</div>
+            <h2>Teach Smart Ready to see</h2>
+            <p>Train a small vision model with your own objects. You will learn what data, classes, predictions and confidence actually mean by using them.</p>
+
+            <div class="bridge-line">
+                <span>Today Smart Ready gains:</span>
+                <strong>👁 Object recognition</strong>
+            </div>
+
+            <div class="progress-track"><span id="progressBar"></span></div>
+            <div class="progress-row">
+                <span id="progressText">Step 1 of 6</span>
+                <span id="progressPct">16%</span>
+            </div>
+        </section>
+
+        <section id="workspace" class="main-card" aria-live="polite"></section>
+
+        <footer class="site-footer">
+            <a href="index.html">Learning path</a>
+            <a href="privacy.html">Privacy & Data Use</a>
+        </footer>
+    </main>
+
+    <canvas id="captureCanvas" class="hidden" width="640" height="480"></canvas>
+</body>
+</html>
