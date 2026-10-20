@@ -15,8 +15,17 @@ function platform() {
     return "desktop";
 }
 
+function isNativeApp() {
+    return Boolean(window.Capacitor?.isNativePlatform?.());
+}
+
 function updateInstallButton() {
     if (!installButton) return;
+
+    if (isNativeApp()) {
+        installButton.classList.add("hidden");
+        return;
+    }
 
     if (isStandalone()) {
         installButton.textContent = "Installed ✓";
@@ -102,7 +111,7 @@ if (installButton) {
     });
 }
 
-if ("serviceWorker" in navigator) {
+if (!isNativeApp() && "serviceWorker" in navigator) {
     window.addEventListener("load", () => {
         navigator.serviceWorker.register("service-worker.js", { scope: "./" }).catch(() => {});
     });
