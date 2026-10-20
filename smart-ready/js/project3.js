@@ -13,7 +13,8 @@ const state = {
     context: null,
     engine: null,
     checklist: [],
-    result: null
+    result: null,
+    usedFallback: false
 };
 
 const workspace = document.getElementById("workspace");
@@ -453,9 +454,34 @@ async function renderPlanner() {
         markComplete();
         paintFinalResult();
     } catch {
-        document.getElementById("modelStatus").textContent = "The local model did not return usable structured data.";
-        showMessage("Nothing was sent to a paid AI API. Reload and try again.");
+        state.usedFallback = true;
+        state.result = fallbackConnectedChecklist();
+        state.checklist = normalize(state.result);
+        saveConnectedResult();
+        markComplete();
+        paintFinalResult();
     }
+}
+
+function fallbackConnectedChecklist() {
+    const rain = /rain|drizzle|thunder/i.test(state.context?.weather?.condition || "") ||
+        Number(state.context?.weather?.rainChancePercent || 0) >= 50;
+
+    const events = (state.context?.schedule || []).map(event => {
+        const title = String(event.title || "Event");
+        const lower = title.toLowerCase();
+        const items = ["Phone", "Water Bottle"];
+
+        if (lower.includes("work")) items.push("Laptop", "Charger");
+        if (lower.includes("swim")) items.push("Swimsuit", "Towel", "Goggles");
+        if (lower.includes("school")) items.push("Notebook", "Pencil Case");
+        if (lower.includes("soccer")) items.push("Soccer Shoes", "Sports Clothes");
+        if (rain) items.push("Umbrella");
+
+        return { name: title, items: [...new Set(items)] };
+    });
+
+    return { events: events.length ? events : [{ name: "My day", items: rain ? ["Phone", "Water Bottle", "Umbrella"] : ["Phone", "Water Bottle"] }] };
 }
 
 function buildPrompt() {
@@ -483,6 +509,8 @@ function paintFinalResult() {
     const known = (trained?.items || []).map(item => item.toLowerCase());
 
     document.getElementById("plannerResult").innerHTML = `
+        ${state.usedFallback ? '<div class="warning-box">The free local model did not return usable structured data on this run, so Smart Ready used a fast learning fallback. No paid cloud model was used.</div>' : ""}
+
         <div class="result-section">
             <h3>Smart Ready prepared:</h3>
             <div id="finalChecklist"></div>
