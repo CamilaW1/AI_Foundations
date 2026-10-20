@@ -2459,3 +2459,40 @@ body {
         padding: 17px;
     }
 }
+
+
+/* Final mobile polish */
+@media (max-width: 620px) {
+    .product-story {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        overflow: visible;
+    }
+
+    .story-step {
+        min-width: 0;
+        width: auto;
+        flex: none;
+    }
+
+    .story-arrow {
+        display: none;
+    }
+
+    .build-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .build-card {
+        width: 100%;
+    }
+
+    .journey-nav {
+        scroll-snap-type: x proximity;
+    }
+
+    .journey-nav a {
+        scroll-snap-align: start;
+    }
+}
