@@ -1,0 +1,149 @@
+name: Build Smart Ready Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-smart-ready-android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Create Capacitor project
+        shell: bash
+        run: |
+          set -e
+          rm -rf android-package
+          mkdir -p android-package/www
+          cp -R smart-ready/. android-package/www/
+
+          cd android-package
+
+          cat > package.json <<'JSON'
+          {
+            "name": "smart-ready-android",
+            "private": true,
+            "version": "1.0.0",
+            "dependencies": {
+              "@capacitor/android": "7.4.3",
+              "@capacitor/cli": "7.4.3",
+              "@capacitor/core": "7.4.3",
+              "sharp": "0.34.4"
+            }
+          }
+          JSON
+
+          cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "com.aibuilder.smartready",
+            "appName": "AI Builder",
+            "webDir": "www",
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          JSON
+
+          npm install
+          npx cap add android
+          npx cap sync android
+
+      - name: Add Android permissions and colorful launcher icon
+        shell: bash
+        run: |
+          set -e
+          cd android-package
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+
+          permissions = [
+              '<uses-permission android:name="android.permission.INTERNET" />',
+              '<uses-permission android:name="android.permission.CAMERA" />'
+          ]
+
+          for permission in permissions:
+              if permission not in text:
+                  text = text.replace("<application", permission + "\n    <application", 1)
+
+          manifest.write_text(text)
+          PY
+
+          node <<'NODE'
+          const sharp = require("sharp");
+          const fs = require("fs");
+          const path = require("path");
+
+          const svg = path.resolve("www/icons/app-icon.svg");
+          const res = path.resolve("android/app/src/main/res");
+          const densities = {
+            "mipmap-mdpi": 48,
+            "mipmap-hdpi": 72,
+            "mipmap-xhdpi": 96,
+            "mipmap-xxhdpi": 144,
+            "mipmap-xxxhdpi": 192
+          };
+
+          (async () => {
+            for (const [folder, size] of Object.entries(densities)) {
+              const dir = path.join(res, folder);
+              fs.mkdirSync(dir, { recursive: true });
+
+              const main = await sharp(svg).resize(size, size).png().toBuffer();
+              fs.writeFileSync(path.join(dir, "ic_launcher.png"), main);
+              fs.writeFileSync(path.join(dir, "ic_launcher_round.png"), main);
+
+              const foregroundSize = Math.round(size * 2.25);
+              const foreground = await sharp(svg)
+                .resize(foregroundSize, foregroundSize, { fit: "contain" })
+                .png()
+                .toBuffer();
+
+              fs.writeFileSync(path.join(dir, "ic_launcher_foreground.png"), foreground);
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -e
+          cd android-package/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../../SmartReady-Android.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmartReady-Android
+          path: SmartReady-Android.apk
+          if-no-files-found: error
+          retention-days: 30
