@@ -1,8 +1,15 @@
 import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+import {
+    parseStructuredJson,
+    normalizeChecklist,
+    buildFallbackChecklist,
+    applyMemoryToChecklist
+} from "./core.js";
 
 const MODEL_ID = "SmolLM2-360M-Instruct-q4f32_1-MLC";
 const PROGRESS_KEY = "smartReadyProgress";
 const CHECKLIST_KEY = "smartReadyActiveChecklist";
+const MEMORY_KEY = "smartReadyMemory";
 
 const state = {
     step: 1,
@@ -45,20 +52,20 @@ function renderPlan() {
     workspace.innerHTML = `
         <div class="eyebrow">Give AI a real goal</div>
         <h2 class="section-title">What are you doing?</h2>
-        <p class="section-copy">Write one normal sentence. Smart Ready will turn it into a preparation list.</p>
+        <p class="section-copy">Write one normal sentence or tap an example. Example choices move forward immediately.</p>
 
         <textarea id="planInput" class="plan-input" placeholder="Tomorrow I'm going to work and then swimming.">${escapeHtml(state.plan)}</textarea>
 
         <div class="example-row">
             <button class="example-chip" data-example="Tomorrow I'm going to work and then swimming.">💼 Work + swimming</button>
-            <button class="example-chip" data-example="I'm flying to Toronto for 3 days with only a carry-on.">✈️ 3-day trip</button>
+            <button class="example-chip" data-example="I'm flying for 3 days with only a carry-on.">✈️ 3-day trip</button>
             <button class="example-chip" data-example="We're going to the beach with the family for the afternoon.">🏖️ Family beach</button>
             <button class="example-chip" data-example="I have school in the morning and soccer practice after school.">⚽ School + soccer</button>
         </div>
 
         <button id="generatePlan" type="button" class="button full-button">Build my checklist →</button>
 
-        <div class="concept-note"><strong>Prompt</strong> = the instruction and context you give an LLM.</div>
+        <div class="concept-note"><strong>Prompt</strong> = the instruction and useful context you give an LLM.</div>
     `;
 
     const input = document.getElementById("planInput");
@@ -66,7 +73,6 @@ function renderPlan() {
     workspace.querySelectorAll("[data-example]").forEach(button => {
         button.addEventListener("click", () => {
             state.plan = button.dataset.example;
-            input.value = state.plan;
             state.prompt = buildPrompt(state.plan);
             setStep(2);
         });
@@ -78,6 +84,7 @@ function renderPlan() {
             input.focus();
             return;
         }
+
         state.plan = value;
         state.prompt = buildPrompt(value);
         setStep(2);
@@ -89,8 +96,8 @@ function renderHowLLMWorks() {
 
     workspace.innerHTML = `
         <div class="eyebrow">What an LLM actually does</div>
-        <h2 class="section-title">Text goes in as small pieces</h2>
-        <p class="section-copy">This is a simplified token view. Real tokenization can split text differently, but the important idea is that an LLM works with tokens and predicts what should come next.</p>
+        <h2 class="section-title">Text becomes tokens</h2>
+        <p class="section-copy">This is a simplified view. Real tokenization can split text differently, but an LLM works with tokens and predicts useful next tokens from learned patterns.</p>
 
         <div class="token-box">
             ${pieces.map(piece => `<span>${escapeHtml(piece)}</span>`).join("")}
@@ -101,14 +108,14 @@ function renderHowLLMWorks() {
         </div>
 
         <div class="learned-card">
-            <strong>Why can an LLM sound confident and still be wrong?</strong>
-            <p>It generates likely next tokens from learned patterns. It is not automatically checking a perfect database of facts.</p>
+            <strong>Important</strong>
+            <p>An LLM is not automatically checking a perfect database of facts. It can produce fluent text and still be wrong.</p>
         </div>
 
-        <div class="auto-step">Starting the local model…</div>
+        <div class="auto-step">Starting your free local model…</div>
     `;
 
-    setTimeout(() => setStep(3), 1800);
+    setTimeout(() => setStep(3), 1500);
 }
 
 function simpleTokenView(text) {
@@ -116,9 +123,14 @@ function simpleTokenView(text) {
 }
 
 function buildPrompt(plan) {
+    const memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || "[]");
+
     return `Create a practical preparation checklist for this plan:
 
 "${plan}"
+
+Saved preferences:
+${JSON.stringify(memory)}
 
 Return ONLY valid JSON in this exact shape:
 {
@@ -134,6 +146,7 @@ Rules:
 - Use short, concrete item names.
 - Include only realistic things a person may need to bring or prepare.
 - Group items by activity when there is more than one.
+- Respect saved preferences when relevant.
 - Do not include explanations outside the JSON.`;
 }
 
@@ -141,7 +154,7 @@ async function renderModelWork() {
     workspace.innerHTML = `
         <div class="eyebrow">Local LLM</div>
         <h2 class="section-title">Smart Ready is planning on this device</h2>
-        <p class="section-copy">The model is downloaded to your browser and runs locally. The first load can take several minutes on a phone.</p>
+        <p class="section-copy">The first local-model load can be slow on a phone. After it is cached, later runs are usually faster.</p>
 
         <div class="model-card">
             <div class="model-row">
@@ -164,8 +177,7 @@ async function renderModelWork() {
     `;
 
     if (!navigator.gpu) {
-        document.getElementById("modelWarning").innerHTML =
-            '<div class="warning-box">This browser does not expose WebGPU, so the local LLM cannot run here. Try current Chrome/Edge on a compatible device. The app will not switch to a paid cloud model automatically.</div>';
+        useFallback("WebGPU is unavailable on this device, so the learning fallback was used.");
         return;
     }
 
@@ -185,88 +197,50 @@ async function renderModelWork() {
 
         const response = await state.engine.chat.completions.create({
             messages: [
-                { role: "system", content: "You are a practical preparation assistant. Follow the requested JSON format exactly." },
-                { role: "user", content: state.prompt }
+                {
+                    role: "system",
+                    content: "You are a practical preparation assistant. Return only the requested JSON and no extra text."
+                },
+                {
+                    role: "user",
+                    content: state.prompt
+                }
             ],
             temperature: 0.2,
-            max_tokens: 420,
-            response_format: { type: "json_object" }
+            max_tokens: 420
         });
 
-        const raw = response.choices?.[0]?.message?.content || "";
-        state.result = parseJson(raw);
+        state.result = parseStructuredJson(response.choices?.[0]?.message?.content || "");
 
-        if (!state.result?.events?.length) throw new Error("Bad JSON");
-
-        state.checklist = normalize(state.result);
-        setStep(4);
-    } catch {
-        state.usedFallback = true;
-        state.result = fallbackChecklist(state.plan);
-        state.checklist = normalize(state.result);
-        setStep(4);
-    }
-}
-
-function fallbackChecklist(plan) {
-    const text = plan.toLowerCase();
-    const events = [];
-
-    if (text.includes("work")) {
-        events.push({ name: "Work", items: ["Laptop", "Charger", "Access Card"] });
-    }
-
-    if (text.includes("swim")) {
-        events.push({ name: "Swimming", items: ["Swimsuit", "Towel", "Goggles", "Water Bottle"] });
-    }
-
-    if (text.includes("flight") || text.includes("flying") || text.includes("trip") || text.includes("toronto")) {
-        events.push({ name: "Trip", items: ["Passport", "Charger", "Clothes", "Water Bottle"] });
-    }
-
-    if (text.includes("beach")) {
-        events.push({ name: "Beach", items: ["Towel", "Sunscreen", "Water Bottle", "Snacks"] });
-    }
-
-    if (text.includes("school")) {
-        events.push({ name: "School", items: ["Notebook", "Water Bottle", "Pencil Case"] });
-    }
-
-    if (text.includes("soccer")) {
-        events.push({ name: "Soccer", items: ["Soccer Shoes", "Water Bottle", "Sports Clothes"] });
-    }
-
-    if (!events.length) {
-        events.push({ name: "My plan", items: ["Phone", "Water Bottle", "Charger"] });
-    }
-
-    return { events };
-}
-
-function parseJson(text) {
-    try {
-        return JSON.parse(text);
-    } catch {
-        const first = text.indexOf("{");
-        const last = text.lastIndexOf("}");
-        if (first === -1 || last <= first) return null;
-        try {
-            return JSON.parse(text.slice(first, last + 1));
-        } catch {
-            return null;
+        if (!state.result?.events?.length) {
+            throw new Error("Bad structured output");
         }
+
+        finishChecklist(state.result, false);
+    } catch {
+        useFallback("The free local model did not return usable structured data on this run.");
     }
 }
 
-function normalize(result) {
-    return result.events
-        .filter(event => event?.name && Array.isArray(event.items))
-        .map(event => ({
-            name: String(event.name).trim(),
-            items: event.items.map(item => String(item).trim()).filter(Boolean).slice(0, 12)
-        }))
-        .filter(event => event.items.length)
-        .slice(0, 6);
+function useFallback(reason) {
+    state.usedFallback = true;
+    const box = document.getElementById("modelWarning");
+    if (box) {
+        box.innerHTML = `<div class="warning-box"><strong>Learning fallback</strong><br>${escapeHtml(reason)} No paid cloud model was used.</div>`;
+    }
+
+    finishChecklist(buildFallbackChecklist(state.plan), true);
+}
+
+function finishChecklist(result, fallback) {
+    state.result = result;
+    state.usedFallback = fallback;
+
+    const base = normalizeChecklist(result);
+    const memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || "[]");
+    state.checklist = applyMemoryToChecklist(base, memory);
+
+    setTimeout(() => setStep(4), fallback ? 650 : 200);
 }
 
 function renderReview() {
@@ -275,13 +249,16 @@ function renderReview() {
 
     const trained = JSON.parse(localStorage.getItem("smartReadyVisionModel") || "null");
     const known = (trained?.items || []).map(item => item.toLowerCase());
+    const memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || "[]");
 
     workspace.innerHTML = `
         <div class="eyebrow">AI output → app UI</div>
-        <h2 class="section-title">Your first AI-generated checklist</h2>
-        <p class="section-copy">The LLM generated structured data. The app turned that data into something a person can edit and use.</p>
+        <h2 class="section-title">Your AI-generated checklist</h2>
+        <p class="section-copy">The result is already saved. Edit it directly—there is no extra confirmation step.</p>
 
-        ${state.usedFallback ? '<div class="warning-box">The free local model did not return usable structured data on this run, so Smart Ready used a fast learning fallback. No paid cloud model was used.</div>' : ""}
+        ${state.usedFallback ? '<div class="warning-box"><strong>Learning fallback used.</strong> The free local model failed to return valid structured data. The lesson continued locally without a paid API.</div>' : ""}
+
+        ${memory.length ? `<div class="memory-active"><span>🧩</span><div><strong>Memory is active</strong><small>${memory.length} saved preference${memory.length === 1 ? "" : "s"} can change this checklist.</small></div></div>` : ""}
 
         <div id="checklist"></div>
 
@@ -297,12 +274,12 @@ function renderReview() {
 
         <div class="learned-card">
             <strong>You just learned</strong>
-            <p><b>LLM</b> generates tokens. <b>Structured output</b> makes the result easier for software to use. <b>Human review</b> matters because AI can be confidently wrong.</p>
+            <p><b>LLM</b> generates tokens. <b>Structured output</b> makes the result easier for software to use. <b>Memory</b> can modify the result. Human review still matters because AI can be confidently wrong.</p>
         </div>
 
         ${known.length ? `
             <div class="bridge-card">
-                <strong>Build 1 is already useful here</strong>
+                <strong>Build 1 is useful here</strong>
                 <p>Items that match classes from your vision model can be checked with the camera.</p>
                 <a class="button secondary" href="project1.html?mode=check">Try camera check →</a>
             </div>
@@ -321,7 +298,11 @@ function renderReview() {
         const input = document.getElementById("newItem");
         const value = input.value.trim();
         if (!value) return;
-        if (!state.checklist.length) state.checklist.push({ name: "My plan", items: [] });
+
+        if (!state.checklist.length) {
+            state.checklist.push({ name: "My plan", items: [], memoryNotes: [] });
+        }
+
         state.checklist[0].items.push(value);
         input.value = "";
         saveChecklist();
@@ -340,14 +321,18 @@ function paintChecklist(known) {
     container.innerHTML = state.checklist.map((event, eventIndex) => `
         <section class="checklist-section">
             <h3>${escapeHtml(event.name)}</h3>
+
+            ${(event.memoryNotes || []).map(note => `<div class="memory-note">🧩 ${escapeHtml(note)}</div>`).join("")}
+
             ${event.items.map((item, itemIndex) => {
                 const lower = item.toLowerCase();
                 const camera = known.some(label => lower.includes(label) || label.includes(lower));
+
                 return `
                     <div class="check-row">
                         <span>${camera ? "📷" : "○"}</span>
                         <span>${escapeHtml(item)}</span>
-                        <button type="button" class="remove-check" data-remove="${eventIndex}:${itemIndex}">×</button>
+                        <button type="button" class="remove-check" data-remove="${eventIndex}:${itemIndex}" aria-label="Remove ${escapeHtml(item)}">×</button>
                     </div>
                 `;
             }).join("")}
@@ -371,7 +356,8 @@ function saveChecklist() {
         plan: state.plan,
         events: state.checklist.map(event => ({
             name: event.name,
-            items: event.items.map(name => ({ name, ready: false }))
+            items: event.items.map(name => ({ name, ready: false })),
+            memoryNotes: event.memoryNotes || []
         }))
     };
 
