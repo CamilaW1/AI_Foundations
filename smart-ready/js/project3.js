@@ -1,15 +1,24 @@
 import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+import { DateTime } from "https://esm.run/luxon@3.7.2";
+import {
+    parseStructuredJson,
+    normalizeChecklist,
+    minimizeEvents,
+    applyMemoryToChecklist,
+    connectedFallbackChecklist
+} from "./core.js";
 
 const MODEL_ID = "SmolLM2-360M-Instruct-q4f32_1-MLC";
 const PROGRESS_KEY = "smartReadyProgress";
 const CHECKLIST_KEY = "smartReadyActiveChecklist";
+const MEMORY_KEY = "smartReadyMemory";
 
 const state = {
     step: 1,
     events: [],
     dayLabel: "",
     city: "",
-    weather: null,
+    weatherByEvent: [],
     context: null,
     engine: null,
     checklist: [],
@@ -68,6 +77,7 @@ function renderSchedule() {
         </div>
 
         <input id="icsFile" type="file" accept=".ics,text/calendar" class="hidden">
+
         <div id="manualBox" class="connect-card hidden">
             <h3>Add an event</h3>
             <div class="manual-row">
@@ -87,8 +97,8 @@ function renderSchedule() {
         const date = tomorrowIso();
         state.dayLabel = "Tomorrow";
         state.events = [
-            { title: "Work", date, time: "09:00", displayTime: "9:00 AM" },
-            { title: "Swimming", date, time: "17:30", displayTime: "5:30 PM" }
+            buildManualEvent("Work", date, "09:00"),
+            buildManualEvent("Swimming", date, "17:30")
         ];
         setStep(2);
     });
@@ -126,8 +136,9 @@ function renderSchedule() {
 
         if (!title || !date) return;
 
-        state.events.push({ title, date, time, displayTime: formatTime(time) });
-        state.events.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+        state.events.push(buildManualEvent(title, date, time));
+        state.events.sort((a, b) => a.startMs - b.startMs);
+
         document.getElementById("eventTitle").value = "";
         paintManualEvents();
     };
@@ -136,10 +147,25 @@ function renderSchedule() {
     document.getElementById("eventTitle").addEventListener("keydown", event => {
         if (event.key === "Enter") addManual();
     });
+
     document.getElementById("manualWeather").addEventListener("click", () => {
         state.dayLabel = state.events[0]?.date || "Selected day";
         setStep(2);
     });
+}
+
+function buildManualEvent(title, date, time) {
+    const dt = DateTime.fromISO(date + "T" + time);
+
+    return {
+        title,
+        date,
+        time,
+        displayTime: dt.isValid ? dt.toFormat("h:mm a") : formatTime(time),
+        timezone: dt.zoneName || "local",
+        startMs: dt.isValid ? dt.toMillis() : Date.now(),
+        allDay: false
+    };
 }
 
 function paintManualEvents() {
@@ -166,6 +192,7 @@ function paintManualEvents() {
 
 function parseIcs(text) {
     const unfolded = text.replace(/\r?\n[ \t]/g, "");
+
     return unfolded.split("BEGIN:VEVENT").slice(1).map(block => {
         const body = block.split("END:VEVENT")[0] || "";
         const summary = body.match(/(?:^|\n)SUMMARY(?:;[^:]*)?:(.*)/i)?.[1]?.trim();
@@ -175,35 +202,64 @@ function parseIcs(text) {
 
         const params = dtLine[1] || "";
         const raw = dtLine[2].trim();
-        const timezone = params.match(/TZID=([^;:]+)/i)?.[1] || (raw.endsWith("Z") ? "UTC" : "local");
-        const parsed = parseIcsDate(raw);
+        const timezone = params.match(/TZID=([^;:]+)/i)?.[1] || null;
+        const parsed = parseIcsStart(raw, timezone);
 
         if (!parsed) return null;
 
         return {
             title: decodeIcsText(summary),
-            date: parsed.date,
-            time: parsed.time,
-            displayTime: formatTime(parsed.time),
-            timezone
+            ...parsed
         };
     }).filter(Boolean);
 }
 
-function parseIcsDate(raw) {
-    const match = raw.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?)?Z?$/);
-    if (!match) return null;
+function parseIcsStart(raw, timezone) {
+    const dateOnly = /^\d{8}$/.test(raw);
+
+    if (dateOnly) {
+        const dt = DateTime.fromFormat(raw, "yyyyMMdd");
+        if (!dt.isValid) return null;
+
+        return {
+            date: dt.toISODate(),
+            time: "09:00",
+            displayTime: "All day",
+            timezone: timezone || dt.zoneName || "local",
+            startMs: dt.startOf("day").toMillis(),
+            allDay: true
+        };
+    }
+
+    const normalized = raw.endsWith("Z") ? raw.slice(0, -1) : raw;
+    const format = normalized.length >= 15 ? "yyyyMMdd'T'HHmmss" : "yyyyMMdd'T'HHmm";
+
+    let dt;
+
+    if (raw.endsWith("Z")) {
+        dt = DateTime.fromFormat(normalized, format, { zone: "utc" });
+    } else if (timezone) {
+        dt = DateTime.fromFormat(normalized, format, { zone: timezone });
+    } else {
+        dt = DateTime.fromFormat(normalized, format);
+    }
+
+    if (!dt.isValid) return null;
 
     return {
-        date: `${match[1]}-${match[2]}-${match[3]}`,
-        time: match[4] ? `${match[4]}:${match[5]}` : "09:00"
+        date: dt.toISODate(),
+        time: dt.toFormat("HH:mm"),
+        displayTime: dt.toFormat("h:mm a"),
+        timezone: dt.zoneName || timezone || "local",
+        startMs: dt.toMillis(),
+        allDay: false
     };
 }
 
 function chooseRelevantDay(events) {
     if (!events.length) return { events: [], label: "" };
 
-    const today = todayIso();
+    const today = DateTime.local().toISODate();
     const grouped = new Map();
 
     events.forEach(event => {
@@ -211,17 +267,22 @@ function chooseRelevantDay(events) {
         grouped.get(event.date).push(event);
     });
 
-    let chosenDate = grouped.has(today)
+    const dates = [...grouped.keys()].sort();
+    const chosenDate = grouped.has(today)
         ? today
-        : [...grouped.keys()].filter(date => date >= today).sort()[0] || [...grouped.keys()].sort()[0];
+        : dates.find(date => date >= today) || dates[0];
 
     const chosenEvents = (grouped.get(chosenDate) || [])
-        .sort((a, b) => a.time.localeCompare(b.time))
+        .sort((a, b) => a.startMs - b.startMs)
         .slice(0, 12);
 
     return {
         events: chosenEvents,
-        label: chosenDate === today ? "Today" : chosenDate === tomorrowIso() ? "Tomorrow" : chosenDate
+        label: chosenDate === today
+            ? "Today"
+            : chosenDate === tomorrowIso()
+                ? "Tomorrow"
+                : DateTime.fromISO(chosenDate).toFormat("MMM d")
     };
 }
 
@@ -235,16 +296,24 @@ function decodeIcsText(value) {
 }
 
 function renderWeather() {
-    const target = state.events[0];
-
     workspace.innerHTML = `
         <div class="eyebrow">Tool 2 · Weather</div>
-        <h2 class="section-title">Match weather to the event time</h2>
-        <p class="section-copy">Your first event is <strong>${escapeHtml(target.title)}</strong> on <strong>${escapeHtml(target.date)} at ${escapeHtml(target.displayTime)}</strong>. We will request forecast data for that time—not just the weather right now.</p>
+        <h2 class="section-title">Match forecast to each event</h2>
+        <p class="section-copy">Type the city for this day. Smart Ready will match the forecast to each event time instead of using only the weather right now.</p>
+
+        <div class="event-list compact-events">
+            ${state.events.map(event => `
+                <div class="event-row">
+                    <span class="event-time">${escapeHtml(event.displayTime)}</span>
+                    <strong>${escapeHtml(event.title)}</strong>
+                    <small>${escapeHtml(event.timezone || "")}</small>
+                </div>
+            `).join("")}
+        </div>
 
         <div class="city-row">
             <input id="cityInput" maxlength="80" placeholder="City, e.g. Vancouver" value="${escapeHtml(state.city)}">
-            <button id="weatherButton" type="button" class="button teal">Get forecast</button>
+            <button id="weatherButton" type="button" class="button teal">Get forecasts</button>
         </div>
 
         <div class="privacy-box">🌐 Only the city search and weather request go to Open-Meteo. Precise browser GPS is not requested.</div>
@@ -253,73 +322,94 @@ function renderWeather() {
         <div id="weatherResult"></div>
     `;
 
-    document.getElementById("weatherButton").addEventListener("click", fetchWeatherForEvent);
+    document.getElementById("weatherButton").addEventListener("click", fetchWeatherForEvents);
     document.getElementById("cityInput").addEventListener("keydown", event => {
-        if (event.key === "Enter") fetchWeatherForEvent();
+        if (event.key === "Enter") fetchWeatherForEvents();
     });
+
     document.getElementById("skipWeather").addEventListener("click", () => {
-        state.weather = null;
+        state.weatherByEvent = [];
         setStep(3);
     });
 }
 
-async function fetchWeatherForEvent() {
+async function fetchWeatherForEvents() {
     const input = document.getElementById("cityInput");
     const button = document.getElementById("weatherButton");
     const city = input.value.trim();
-    if (!city) return input.focus();
+
+    if (!city) {
+        input.focus();
+        return;
+    }
 
     state.city = city;
     button.disabled = true;
-    button.textContent = "Checking forecast…";
+    button.textContent = "Matching forecasts…";
 
     try {
-        const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`).then(r => r.json());
+        const geoResponse = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+        );
+
+        if (!geoResponse.ok) throw new Error("Geocoding failed");
+
+        const geo = await geoResponse.json();
         const place = geo.results?.[0];
+
         if (!place) throw new Error("City not found");
 
-        const forecastUrl =
+        const forecastResponse = await fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}` +
             "&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,wind_speed_10m" +
-            "&forecast_days=7&timezone=auto";
+            "&forecast_days=7&timezone=auto"
+        );
 
-        const data = await fetch(forecastUrl).then(r => r.json());
-        const target = state.events[0];
-        const targetKey = target.date + "T" + target.time.slice(0, 2) + ":00";
+        if (!forecastResponse.ok) throw new Error("Forecast failed");
+
+        const data = await forecastResponse.json();
+        const weatherZone = data.timezone || "UTC";
         const times = data.hourly?.time || [];
 
-        let index = times.indexOf(targetKey);
-        if (index < 0) {
-            index = nearestTimeIndex(times, target.date + "T" + target.time);
-        }
+        state.weatherByEvent = state.events.map(event => {
+            const eventAtWeatherLocation = event.allDay
+                ? DateTime.fromISO(event.date + "T12:00", { zone: weatherZone })
+                : DateTime.fromMillis(event.startMs).setZone(weatherZone);
 
-        if (index < 0) throw new Error("Forecast not available");
+            const targetKey = eventAtWeatherLocation.toFormat("yyyy-MM-dd'T'HH:00");
+            let index = times.indexOf(targetKey);
 
-        state.weather = {
-            city: place.name,
-            region: place.admin1 || place.country || "",
-            date: target.date,
-            time: times[index]?.slice(11, 16) || target.time,
-            temperature: data.hourly.temperature_2m[index],
-            code: data.hourly.weather_code[index],
-            precipitationProbability: data.hourly.precipitation_probability[index],
-            precipitation: data.hourly.precipitation[index],
-            wind: data.hourly.wind_speed_10m[index]
-        };
+            if (index < 0) {
+                index = nearestTimeIndex(times, eventAtWeatherLocation.toISO({ suppressSeconds: true, includeOffset: false }));
+            }
 
-        document.getElementById("weatherResult").innerHTML = `
-            <div class="weather-card">
-                <div class="weather-main">
-                    <div class="weather-icon">${weatherIcon(state.weather.code)}</div>
-                    <div>
-                        <h3>${escapeHtml(state.weather.city)}</h3>
-                        <p>${weatherLabel(state.weather.code)} · ${Math.round(state.weather.temperature)}°C · rain chance ${Math.round(state.weather.precipitationProbability || 0)}%</p>
-                    </div>
-                </div>
-            </div>
-        `;
+            if (index < 0) {
+                return {
+                    eventTitle: event.title,
+                    eventDate: event.date,
+                    eventTime: event.time,
+                    unavailable: true
+                };
+            }
 
-        setTimeout(() => setStep(3), 700);
+            return {
+                eventTitle: event.title,
+                eventDate: event.date,
+                eventTime: event.time,
+                city: place.name,
+                region: place.admin1 || place.country || "",
+                forecastTime: times[index],
+                temperatureC: Number(data.hourly.temperature_2m[index]),
+                code: Number(data.hourly.weather_code[index]),
+                rainChancePercent: Number(data.hourly.precipitation_probability[index] || 0),
+                precipitation: Number(data.hourly.precipitation[index] || 0),
+                windKmh: Number(data.hourly.wind_speed_10m[index] || 0),
+                unavailable: false
+            };
+        });
+
+        paintWeatherResults();
+        setTimeout(() => setStep(3), 850);
     } catch {
         button.disabled = false;
         button.textContent = "Try again";
@@ -327,18 +417,45 @@ async function fetchWeatherForEvent() {
     }
 }
 
+function paintWeatherResults() {
+    const container = document.getElementById("weatherResult");
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="weather-stack">
+            ${state.weatherByEvent.map(item => item.unavailable ? `
+                <div class="weather-card">
+                    <strong>${escapeHtml(item.eventTitle)}</strong>
+                    <p>Forecast not available for this event time.</p>
+                </div>
+            ` : `
+                <div class="weather-card">
+                    <div class="weather-main">
+                        <div class="weather-icon">${weatherIcon(item.code)}</div>
+                        <div>
+                            <h3>${escapeHtml(item.eventTitle)}</h3>
+                            <p>${weatherLabel(item.code)} · ${Math.round(item.temperatureC)}°C · rain ${Math.round(item.rainChancePercent)}%</p>
+                        </div>
+                    </div>
+                </div>
+            `).join("")}
+        </div>
+    `;
+}
+
 function nearestTimeIndex(times, target) {
     if (!times.length) return -1;
 
-    const targetMs = new Date(target).getTime();
-    if (Number.isNaN(targetMs)) return -1;
+    const targetMs = DateTime.fromISO(target).toMillis();
+    if (!Number.isFinite(targetMs)) return -1;
 
     let best = -1;
     let distance = Infinity;
 
     times.forEach((time, index) => {
-        const value = new Date(time).getTime();
-        if (Number.isNaN(value)) return;
+        const value = DateTime.fromISO(time).toMillis();
+        if (!Number.isFinite(value)) return;
+
         const current = Math.abs(value - targetMs);
         if (current < distance) {
             distance = current;
@@ -350,37 +467,46 @@ function nearestTimeIndex(times, target) {
 }
 
 function renderContext() {
+    const schedule = minimizeEvents(state.events);
+
     state.context = {
-        schedule: state.events.map(event => ({
-            title: event.title,
-            date: event.date,
-            time: event.time
-        })),
-        weather: state.weather ? {
-            city: state.weather.city,
-            date: state.weather.date,
-            time: state.weather.time,
-            condition: weatherLabel(state.weather.code),
-            temperatureC: Math.round(state.weather.temperature),
-            rainChancePercent: Math.round(state.weather.precipitationProbability || 0),
-            windKmh: Math.round(state.weather.wind || 0)
-        } : null
+        schedule,
+        forecasts: state.weatherByEvent
+            .filter(item => !item.unavailable)
+            .map(item => ({
+                eventTitle: item.eventTitle,
+                eventDate: item.eventDate,
+                eventTime: item.eventTime,
+                condition: weatherLabel(item.code),
+                temperatureC: Math.round(item.temperatureC),
+                rainChancePercent: Math.round(item.rainChancePercent),
+                windKmh: Math.round(item.windKmh)
+            }))
     };
 
     workspace.innerHTML = `
         <div class="eyebrow">Context</div>
         <h2 class="section-title">Give AI only what it needs</h2>
-        <p class="section-copy">The app has a bigger calendar file and weather response, but the LLM receives only the useful fields.</p>
+        <p class="section-copy">The original calendar and weather responses contain much more data. The LLM receives only useful event fields and matched forecasts.</p>
 
         <div class="context-card">
             <div class="context-block">
                 <h3>📅 Schedule</h3>
-                ${state.events.map(event => `<div class="context-line"><strong>${escapeHtml(event.displayTime)}</strong> · ${escapeHtml(event.title)}</div>`).join("")}
+                ${state.events.map(event => `
+                    <div class="context-line">
+                        <strong>${escapeHtml(event.displayTime)}</strong> · ${escapeHtml(event.title)}
+                    </div>
+                `).join("")}
             </div>
+
             <div class="context-block">
-                <h3>🌦 Forecast</h3>
-                ${state.weather
-                    ? `<div class="context-line">${weatherLabel(state.weather.code)} · ${Math.round(state.weather.temperature)}°C · ${Math.round(state.weather.precipitationProbability || 0)}% rain</div>`
+                <h3>🌦 Forecasts</h3>
+                ${state.context.forecasts.length
+                    ? state.context.forecasts.map(item => `
+                        <div class="context-line">
+                            <strong>${escapeHtml(item.eventTitle)}</strong> · ${escapeHtml(item.condition)} · ${item.temperatureC}°C · ${item.rainChancePercent}% rain
+                        </div>
+                    `).join("")
                     : '<div class="context-line">No weather context</div>'}
             </div>
         </div>
@@ -399,11 +525,11 @@ function renderContext() {
 async function renderPlanner() {
     workspace.innerHTML = `
         <div class="eyebrow">Connected AI application</div>
-        <h2 class="section-title">Calendar + weather + local LLM</h2>
-        <p class="section-copy">This is a connected assistant: code gathers real data, then the model uses that context to create the list.</p>
+        <h2 class="section-title">Schedule + forecasts + local LLM</h2>
+        <p class="section-copy">Application code gathered the data. Now the local model turns that real context into a useful preparation list.</p>
 
         <div class="flow-line wrap-flow">
-            <span>Calendar</span><b>+</b><span>Weather</span><b>→</b><span>Context</span><b>→</b><span>Local LLM</span>
+            <span>Schedule</span><b>+</b><span>Forecasts</span><b>→</b><span>Context</span><b>→</b><span>Local LLM</span>
         </div>
 
         <div class="model-card">
@@ -415,7 +541,7 @@ async function renderPlanner() {
     `;
 
     if (!navigator.gpu) {
-        document.getElementById("modelStatus").textContent = "WebGPU is not available in this browser.";
+        useFallback("WebGPU is unavailable on this device.");
         return;
     }
 
@@ -423,7 +549,8 @@ async function renderPlanner() {
         state.engine = await webllm.CreateMLCEngine(MODEL_ID, {
             initProgressCallback: report => {
                 document.getElementById("modelStatus").textContent = report.text || "Loading local model…";
-                document.getElementById("modelProgress").style.width = Math.round(Number(report.progress || 0) * 100) + "%";
+                document.getElementById("modelProgress").style.width =
+                    Math.round(Number(report.progress || 0) * 100) + "%";
             }
         });
 
@@ -434,7 +561,7 @@ async function renderPlanner() {
             messages: [
                 {
                     role: "system",
-                    content: "You are a practical preparation assistant. Use only provided context and return the requested JSON."
+                    content: "You are a practical preparation assistant. Use only provided context. Return only valid JSON and no extra text."
                 },
                 {
                     role: "user",
@@ -442,52 +569,30 @@ async function renderPlanner() {
                 }
             ],
             temperature: 0.2,
-            max_tokens: 500,
-            response_format: { type: "json_object" }
+            max_tokens: 500
         });
 
-        state.result = parseJson(response.choices?.[0]?.message?.content || "");
-        if (!state.result?.events?.length) throw new Error("Invalid output");
+        state.result = parseStructuredJson(response.choices?.[0]?.message?.content || "");
 
-        state.checklist = normalize(state.result);
-        saveConnectedResult();
-        markComplete();
-        paintFinalResult();
+        if (!state.result?.events?.length) {
+            throw new Error("Invalid structured output");
+        }
+
+        finishConnectedChecklist(state.result, false);
     } catch {
-        state.usedFallback = true;
-        state.result = fallbackConnectedChecklist();
-        state.checklist = normalize(state.result);
-        saveConnectedResult();
-        markComplete();
-        paintFinalResult();
+        useFallback("The free local model did not return usable structured data on this run.");
     }
 }
 
-function fallbackConnectedChecklist() {
-    const rain = /rain|drizzle|thunder/i.test(state.context?.weather?.condition || "") ||
-        Number(state.context?.weather?.rainChancePercent || 0) >= 50;
-
-    const events = (state.context?.schedule || []).map(event => {
-        const title = String(event.title || "Event");
-        const lower = title.toLowerCase();
-        const items = ["Phone", "Water Bottle"];
-
-        if (lower.includes("work")) items.push("Laptop", "Charger");
-        if (lower.includes("swim")) items.push("Swimsuit", "Towel", "Goggles");
-        if (lower.includes("school")) items.push("Notebook", "Pencil Case");
-        if (lower.includes("soccer")) items.push("Soccer Shoes", "Sports Clothes");
-        if (rain) items.push("Umbrella");
-
-        return { name: title, items: [...new Set(items)] };
-    });
-
-    return { events: events.length ? events : [{ name: "My day", items: rain ? ["Phone", "Water Bottle", "Umbrella"] : ["Phone", "Water Bottle"] }] };
-}
-
 function buildPrompt() {
+    const memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || "[]");
+
     return `Create a practical preparation checklist from this context:
 
 ${JSON.stringify(state.context, null, 2)}
+
+Saved preferences:
+${JSON.stringify(memory)}
 
 Return ONLY valid JSON:
 {
@@ -497,19 +602,44 @@ Return ONLY valid JSON:
 }
 
 Rules:
-- Use only the supplied schedule as real events.
+- Use only supplied schedule events.
+- Match weather to the relevant event.
 - Use weather only when it changes what may be useful.
+- Respect saved preferences when relevant.
 - Use short concrete item names.
 - Do not invent appointments or personal facts.
 - No text outside JSON.`;
 }
 
-function paintFinalResult() {
+function useFallback(reason) {
+    state.usedFallback = true;
+
+    const schedule = state.context?.schedule || minimizeEvents(state.events);
+    const representativeWeather = state.context?.forecasts?.[0] || null;
+
+    const fallback = connectedFallbackChecklist(schedule, representativeWeather);
+    finishConnectedChecklist(fallback, true, reason);
+}
+
+function finishConnectedChecklist(result, fallback, reason = "") {
+    state.result = result;
+    state.usedFallback = fallback;
+
+    const base = normalizeChecklist(result);
+    const memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || "[]");
+    state.checklist = applyMemoryToChecklist(base, memory);
+
+    saveConnectedResult();
+    markComplete();
+    paintFinalResult(reason);
+}
+
+function paintFinalResult(reason = "") {
     const trained = JSON.parse(localStorage.getItem("smartReadyVisionModel") || "null");
     const known = (trained?.items || []).map(item => item.toLowerCase());
 
     document.getElementById("plannerResult").innerHTML = `
-        ${state.usedFallback ? '<div class="warning-box">The free local model did not return usable structured data on this run, so Smart Ready used a fast learning fallback. No paid cloud model was used.</div>' : ""}
+        ${state.usedFallback ? `<div class="warning-box"><strong>Learning fallback</strong><br>${escapeHtml(reason)} No paid cloud model was used.</div>` : ""}
 
         <div class="result-section">
             <h3>Smart Ready prepared:</h3>
@@ -518,12 +648,12 @@ function paintFinalResult() {
 
         <div class="learned-card">
             <strong>Important distinction</strong>
-            <p>You built a <b>connected AI application</b>. Code chose which data to fetch. In Build 4, the model will help choose which tools to use. That is the step toward an AI agent.</p>
+            <p>You built a <b>connected AI application</b>. Application code chose which data to fetch. In Build 4, the model will choose the next tool after seeing each observation. That is the agent loop.</p>
         </div>
 
         ${known.length ? `
             <div class="bridge-card">
-                <strong>Now connect back to Build 1</strong>
+                <strong>Connect back to Build 1</strong>
                 <p>Use your trained camera model to verify checklist items it knows.</p>
                 <a class="button secondary" href="project1.html?mode=check">Check items with camera →</a>
             </div>
@@ -539,6 +669,9 @@ function paintFinalResult() {
     document.getElementById("finalChecklist").innerHTML = state.checklist.map(event => `
         <section class="checklist-section">
             <h3>${escapeHtml(event.name)}</h3>
+
+            ${(event.memoryNotes || []).map(note => `<div class="memory-note">🧩 ${escapeHtml(note)}</div>`).join("")}
+
             ${event.items.map(item => `
                 <div class="check-row">
                     <span>${known.some(label => item.toLowerCase().includes(label) || label.includes(item.toLowerCase())) ? "📷" : "○"}</span>
@@ -556,7 +689,8 @@ function saveConnectedResult() {
         context: state.context,
         events: state.checklist.map(event => ({
             name: event.name,
-            items: event.items.map(name => ({ name, ready: false }))
+            items: event.items.map(name => ({ name, ready: false })),
+            memoryNotes: event.memoryNotes || []
         }))
     };
 
@@ -564,34 +698,9 @@ function saveConnectedResult() {
     localStorage.setItem(CHECKLIST_KEY, JSON.stringify(payload));
 }
 
-function parseJson(text) {
-    try {
-        return JSON.parse(text);
-    } catch {
-        const first = text.indexOf("{");
-        const last = text.lastIndexOf("}");
-        if (first === -1 || last <= first) return null;
-        try {
-            return JSON.parse(text.slice(first, last + 1));
-        } catch {
-            return null;
-        }
-    }
-}
-
-function normalize(result) {
-    return result.events
-        .filter(event => event?.name && Array.isArray(event.items))
-        .map(event => ({
-            name: String(event.name).trim(),
-            items: event.items.map(item => String(item).trim()).filter(Boolean).slice(0, 12)
-        }))
-        .filter(event => event.items.length)
-        .slice(0, 8);
-}
-
 function weatherLabel(code) {
     const value = Number(code);
+
     if (value === 0) return "Clear";
     if ([1, 2, 3].includes(value)) return "Partly cloudy";
     if ([45, 48].includes(value)) return "Fog";
@@ -599,16 +708,19 @@ function weatherLabel(code) {
     if ([61, 63, 65, 66, 67, 80, 81, 82].includes(value)) return "Rain";
     if ([71, 73, 75, 77, 85, 86].includes(value)) return "Snow";
     if ([95, 96, 99].includes(value)) return "Thunderstorm";
+
     return "Mixed conditions";
 }
 
 function weatherIcon(code) {
     const label = weatherLabel(code);
+
     if (label === "Clear") return "☀️";
     if (label === "Partly cloudy") return "⛅";
     if (label === "Fog") return "🌫️";
     if (label === "Snow") return "❄️";
     if (label === "Thunderstorm") return "⛈️";
+
     return "🌧️";
 }
 
@@ -618,31 +730,20 @@ function formatTime(value) {
     return (hour % 12 || 12) + ":" + String(minute).padStart(2, "0") + " " + suffix;
 }
 
-function todayIso() {
-    const date = new Date();
-    return localIsoDate(date);
-}
-
 function tomorrowIso() {
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    return localIsoDate(date);
-}
-
-function localIsoDate(date) {
-    return date.getFullYear() + "-" +
-        String(date.getMonth() + 1).padStart(2, "0") + "-" +
-        String(date.getDate()).padStart(2, "0");
+    return DateTime.local().plus({ days: 1 }).toISODate();
 }
 
 function showMessage(text) {
     let box = document.getElementById("inlineMessage");
+
     if (!box) {
         box = document.createElement("div");
         box.id = "inlineMessage";
         box.className = "warning-box";
         workspace.prepend(box);
     }
+
     box.textContent = text;
 }
 
