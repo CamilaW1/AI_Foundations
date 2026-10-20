@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>AI Builder — Smart Bag Detector</title>
+    <title>AI Builder — Smart Ready</title>
 
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
@@ -15,87 +15,83 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="AI Builder">
 
-    <link rel="stylesheet" href="css/style.css?v=8">
-
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.6/dist/knn-classifier.min.js"></script>
-    <script src="js/app.js?v=8" defer></script>
-    <script src="js/pwa.js?v=1" defer></script>
+    <link rel="stylesheet" href="css/style.css?v=20">
+    <script src="js/home.js?v=1" defer></script>
+    <script src="js/pwa.js?v=2" defer></script>
 </head>
 <body>
     <main class="app-shell">
         <header class="topbar">
-            <div class="brand">
+            <a class="brand brand-link" href="index.html">
                 <div class="brand-mark">AI</div>
                 <div>
                     <h1>AI Builder</h1>
-                    <p>Build real AI products</p>
+                    <p>Build one useful AI product</p>
                 </div>
-            </div>
+            </a>
             <div class="topbar-actions">
                 <button id="installAppButton" type="button" class="install-app-button">Install app</button>
-                <div class="build-pill">Build 0.1</div>
+                <a class="icon-link" href="privacy.html" aria-label="Privacy & Data Use">🛡️</a>
             </div>
         </header>
 
-        <nav class="project-nav" aria-label="Projects">
-            <a href="index.html" class="active">Project 1</a>
-            <a href="project2.html">Project 2</a>
-            <a href="project3.html">Project 3</a>
-        </nav>
+        <section class="hero-card home-hero">
+            <div class="eyebrow">Your product</div>
+            <h2>Build Smart Ready</h2>
+            <p>You will start with a camera model and keep upgrading the same assistant until it can plan, use real data, choose tools, remember useful context and test itself before shipping.</p>
 
-        <section class="hero-card">
-            <div class="eyebrow">Project 1</div>
-            <h2>Smart Bag Detector</h2>
-            <p>Train AI with your own photos, test it, then teach your app when to say “Not sure”.</p>
-
-            <div class="progress-track" aria-label="Project progress">
-                <span id="progressBar"></span>
-            </div>
-            <div class="progress-row">
-                <span id="progressText">Step 1 of 6</span>
-                <span id="progressPct">16%</span>
+            <div class="global-progress">
+                <div class="progress-track"><span id="courseProgressBar"></span></div>
+                <div class="progress-row">
+                    <span id="courseProgressText">0 of 6 builds complete</span>
+                    <span id="courseProgressPct">0%</span>
+                </div>
             </div>
         </section>
 
-        <section id="workspace" class="main-card" aria-live="polite"></section>
+        <section class="product-story">
+            <div class="story-step"><span>👁️</span><strong>See</strong><small>Recognize real objects</small></div>
+            <div class="story-arrow">→</div>
+            <div class="story-step"><span>🧠</span><strong>Plan</strong><small>Use an LLM</small></div>
+            <div class="story-arrow">→</div>
+            <div class="story-step"><span>🌐</span><strong>Connect</strong><small>Use real context</small></div>
+            <div class="story-arrow">→</div>
+            <div class="story-step"><span>🛠️</span><strong>Act</strong><small>Choose tools</small></div>
+            <div class="story-arrow">→</div>
+            <div class="story-step"><span>🧩</span><strong>Remember</strong><small>Retrieve knowledge</small></div>
+            <div class="story-arrow">→</div>
+            <div class="story-step"><span>✅</span><strong>Trust</strong><small>Evaluate & ship</small></div>
+        </section>
 
-        <section class="ali-card">
-            <div class="ali-row">
-                <div class="ali-avatar">A</div>
-                <div>
-                    <strong>AI Help</strong>
-                    <p id="aliText">Choose the kind of bag you want to prepare.</p>
-                </div>
+        <section class="main-card">
+            <div class="eyebrow">Learning path</div>
+            <h2 class="section-title">Every build adds a real capability</h2>
+            <p class="section-copy">No disconnected exercises. Each project changes what Smart Ready can actually do.</p>
+
+            <div id="buildGrid" class="build-grid"></div>
+        </section>
+
+        <section class="main-card">
+            <div class="eyebrow">What you will understand</div>
+            <h2 class="section-title">By the end</h2>
+            <div class="outcome-grid">
+                <div><span>ML</span><p>training data, classes, predictions, confidence</p></div>
+                <div><span>LLM</span><p>tokens, prompts, structured output, hallucinations</p></div>
+                <div><span>APIs</span><p>real data, permissions, context and failures</p></div>
+                <div><span>Agent</span><p>goal, tools, observations, actions and guardrails</p></div>
+                <div><span>RAG</span><p>memory, retrieval, documents and sources</p></div>
+                <div><span>Evals</span><p>tests, reliability, privacy and deployment</p></div>
             </div>
-            <div class="help-actions">
-                <button id="explainBtn" type="button" class="help-button">Explain</button>
-                <button id="hintBtn" type="button" class="help-button primary-help">Hint</button>
-            </div>
+        </section>
+
+        <section class="main-card compact-card">
+            <strong>Local-first by default</strong>
+            <p class="section-copy no-bottom">The current builds use browser AI and free services. No paid AI API or token billing is enabled.</p>
         </section>
 
         <footer class="site-footer">
-            <a href="index.html">Project 1</a>
-            <a href="project2.html">Project 2</a>
-            <a href="project3.html">Project 3</a>
             <a href="privacy.html">Privacy & Data Use</a>
         </footer>
     </main>
-
-    <div id="modalBack" class="modal-back" aria-hidden="true">
-        <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-            <div class="modal-head">
-                <div>
-                    <div id="modalType" class="eyebrow">Hint</div>
-                    <h3 id="modalTitle">Need help?</h3>
-                </div>
-                <button id="closeModal" type="button" class="close-button" aria-label="Close">×</button>
-            </div>
-            <div id="modalBody"></div>
-        </section>
-    </div>
-
-    <canvas id="captureCanvas" class="hidden" width="640" height="480"></canvas>
 </body>
 </html>
