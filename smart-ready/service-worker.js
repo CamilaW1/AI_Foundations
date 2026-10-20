@@ -1,4 +1,4 @@
-const CACHE_NAME = "ai-builder-smart-ready-v3";
+const CACHE_NAME = "ai-builder-smart-ready-v4";
 
 const APP_SHELL = [
     "./",
