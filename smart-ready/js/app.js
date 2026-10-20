@@ -3,6 +3,9 @@ const DEFAULT_THRESHOLD = 0.70;
 const CHECKLIST_KEY = "smartReadyActiveChecklist";
 const MODEL_KEY = "smartReadyVisionModel";
 const PROGRESS_KEY = "smartReadyProgress";
+const DRAFT_DB = "smartReadyLearning";
+const DRAFT_STORE = "drafts";
+const DRAFT_KEY = "build1";
 
 const PHOTO_GUIDES = [
     { title: "Front", icon: "⬆️", text: "Show the whole object straight from the front." },
@@ -44,6 +47,68 @@ const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
 const progressPct = document.getElementById("progressPct");
 const captureCanvas = document.getElementById("captureCanvas");
+
+function openDraftDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DRAFT_DB, 1);
+
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(DRAFT_STORE)) {
+                db.createObjectStore(DRAFT_STORE);
+            }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function saveDraft() {
+    if (state.checkMode || state.step > 3 || !state.items.length) return;
+
+    try {
+        const db = await openDraftDb();
+        const tx = db.transaction(DRAFT_STORE, "readwrite");
+        tx.objectStore(DRAFT_STORE).put({
+            step: state.step,
+            bagType: state.bagType,
+            items: state.items,
+            photos: state.photos,
+            selectedClassIndex: state.selectedClassIndex
+        }, DRAFT_KEY);
+    } catch {}
+}
+
+async function loadDraft() {
+    if (state.checkMode) return;
+
+    try {
+        const db = await openDraftDb();
+        const saved = await new Promise((resolve, reject) => {
+            const tx = db.transaction(DRAFT_STORE, "readonly");
+            const request = tx.objectStore(DRAFT_STORE).get(DRAFT_KEY);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (saved?.items?.length) {
+            state.step = saved.step || 3;
+            state.bagType = saved.bagType || "";
+            state.items = saved.items || [];
+            state.photos = saved.photos || {};
+            state.selectedClassIndex = saved.selectedClassIndex || 0;
+        }
+    } catch {}
+}
+
+async function clearDraft() {
+    try {
+        const db = await openDraftDb();
+        const tx = db.transaction(DRAFT_STORE, "readwrite");
+        tx.objectStore(DRAFT_STORE).delete(DRAFT_KEY);
+    } catch {}
+}
 
 function markComplete(buildNumber) {
     const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
@@ -238,6 +303,7 @@ function renderBag() {
 
             state.photos = Object.fromEntries(state.items.map(item => [item, []]));
             state.selectedClassIndex = 0;
+            saveDraft();
             setStep(3);
         });
     });
@@ -288,6 +354,7 @@ function renderCustomItems() {
         if (state.items.length === 3) {
             state.photos = Object.fromEntries(state.items.map(item => [item, []]));
             state.selectedClassIndex = 0;
+            saveDraft();
             setTimeout(() => setStep(3), 350);
         }
     };
@@ -433,6 +500,7 @@ function moveAfterPhoto(currentItem) {
         if (nextIndex >= 0) state.selectedClassIndex = nextIndex;
     }
 
+    saveDraft();
     renderCollect();
 }
 
@@ -452,6 +520,7 @@ function paintPhotoGrid() {
     grid.querySelectorAll("[data-photo]").forEach(button => {
         button.addEventListener("click", () => {
             photos.splice(Number(button.dataset.photo), 1);
+            saveDraft();
             renderCollect();
         });
     });
@@ -500,6 +569,7 @@ async function renderTrain() {
 
     state.trained = true;
     serializeClassifier();
+    clearDraft();
     status.textContent = "Model ready ✓";
     setTimeout(() => setStep(5), 650);
 }
@@ -783,5 +853,7 @@ function escapeHtml(value) {
     })[character]);
 }
 
-updateProgress();
-render();
+loadDraft().finally(() => {
+    updateProgress();
+    render();
+});
