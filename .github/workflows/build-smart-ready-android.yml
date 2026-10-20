@@ -1,4 +1,4 @@
-name: Build Smart Ready Android APK
+name: Build Smart Ready Android APK\n# package revision 2
 
 on:
   workflow_dispatch:
