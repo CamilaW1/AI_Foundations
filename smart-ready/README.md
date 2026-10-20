@@ -8,8 +8,8 @@ Smart Ready is a project-based AI learning app for beginners. Every build extend
 2. **Build 2 — Plan:** use a free local LLM to turn natural-language plans into structured checklists; learn tokens, prompts, structured output and hallucination risk.
 3. **Build 3 — Connect:** add schedule and event-time weather context; learn APIs, permissions, data minimization, JSON and failure handling.
 4. **Build 4 — Act:** give the model a goal and let it help choose exposed tools; learn the agent loop: goal → model → tool → observation → action.
-5. **Build 5 — Remember:** save local preferences, retrieve document chunks and answer from sources; learn memory, retrieval, RAG, sources and where embeddings fit.
-6. **Build 6 — Trust:** run repeatable reliability checks; learn evals, guardrails, privacy, fallback behavior and deployment thinking.
+5. **Build 5 — Remember:** save local preferences, compare keyword search with local semantic embeddings, retrieve document chunks and answer from sources; learn memory, retrieval, embeddings, RAG and citations.
+6. **Build 6 — Trust:** run executable checks against shared app logic; learn evals, guardrails, privacy, fallback behavior and deployment thinking.
 
 ## Local-first design
 
@@ -18,7 +18,7 @@ Smart Ready is a project-based AI learning app for beginners. Every build extend
 - No paid OpenAI API or other paid cloud LLM API is enabled.
 - Build 3 calendar .ics files are parsed locally.
 - Build 3 uses Open-Meteo for city search and forecast data.
-- Build 5 reads TXT/MD and supported PDFs locally; PDF.js is used for local PDF text extraction.
+- Build 5 reads TXT/MD and supported PDFs locally; PDF.js is used for local PDF text extraction. Universal Sentence Encoder is used locally for semantic embeddings when available.
 - Learning progress, preferences, checklists and compact classifier data can be stored in browser localStorage.
 - Build 1 classifier data can be reused by later checklists for a real cross-build camera check.
 
