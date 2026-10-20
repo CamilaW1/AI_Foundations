@@ -1,89 +1,65 @@
 # AI Builder — Smart Ready
 
-A project-based AI learning app where each project extends the same product.
+Smart Ready is a project-based AI learning app for beginners. Every build extends the same useful product instead of teaching disconnected exercises.
 
-## Projects
+## Learning path
 
-### Project 1 — Smart Bag Detector
+1. **Build 1 — See:** train an in-browser computer-vision classifier with your own examples; learn classes, training/test data, predictions, confidence and uncertainty.
+2. **Build 2 — Plan:** use a free local LLM to turn natural-language plans into structured checklists; learn tokens, prompts, structured output and hallucination risk.
+3. **Build 3 — Connect:** add schedule and event-time weather context; learn APIs, permissions, data minimization, JSON and failure handling.
+4. **Build 4 — Act:** give the model a goal and let it help choose exposed tools; learn the agent loop: goal → model → tool → observation → action.
+5. **Build 5 — Remember:** save local preferences, retrieve document chunks and answer from sources; learn memory, retrieval, RAG, sources and where embeddings fit.
+6. **Build 6 — Trust:** run repeatable reliability checks; learn evals, guardrails, privacy, fallback behavior and deployment thinking.
 
-- Choose three item classes.
-- Capture five guided views per item.
-- Train an in-browser classifier with TensorFlow.js, MobileNet and KNN.
-- Test predictions with the camera.
-- Add a confidence rule for uncertain predictions.
+## Local-first design
 
-### Project 2 — Smart Planner
+- Build 1 vision runs in the browser with TensorFlow.js, MobileNet and KNN.
+- Builds 2–5 keep the free local SmolLM2 model through WebLLM.
+- No paid OpenAI API or other paid cloud LLM API is enabled.
+- Build 3 calendar .ics files are parsed locally.
+- Build 3 uses Open-Meteo for city search and forecast data.
+- Build 5 reads TXT/MD and supported PDFs locally; PDF.js is used for local PDF text extraction.
+- Learning progress, preferences, checklists and compact classifier data can be stored in browser localStorage.
+- Build 1 classifier data can be reused by later checklists for a real cross-build camera check.
 
-- Describe a real plan in natural language.
-- Build a useful prompt.
-- Run a local LLM in the browser with WebLLM.
-- Request structured JSON.
-- Turn the JSON into an editable checklist.
-- Keep human review before accepting AI suggestions.
-
-### Project 3 — Connected Smart Assistant
-
-- Import calendar events from an .ics file locally in the browser.
-- Add live weather by city.
-- Minimize context before giving it to the model.
-- Use the local LLM to build a connected preparation checklist.
-- Review the list before confirming it.
-- Continue toward camera verification from Project 1.
-
-## Project structure
+## Product structure
 
 ```text
 smart-ready/
 ├── index.html
+├── project1.html
 ├── project2.html
 ├── project3.html
+├── project4.html
+├── project5.html
+├── project6.html
 ├── privacy.html
+├── manifest.webmanifest
+├── service-worker.js
 ├── css/
 │   ├── style.css
 │   ├── project2.css
 │   ├── project3.css
 │   └── privacy.css
 └── js/
+    ├── home.js
     ├── app.js
     ├── project2.js
-    └── project3.js
+    ├── project3.js
+    ├── project4.js
+    ├── project5.js
+    ├── project6.js
+    └── pwa.js
 ```
+
+## Important learning distinction
+
+Build 3 is a connected AI application: application code gathers the context. Build 4 introduces an agent pattern where the model helps choose which exposed tools to use for a goal.
 
 ## Privacy and cost
 
-- Camera access is requested by the browser only when the user starts the camera.
-- Project 1 image processing happens in the browser; this demo does not upload captured training photos to a server.
-- Project 2 and Project 3 use a local WebLLM model. They do not use an OpenAI API key or paid OpenAI tokens.
-- Project 3 calendar .ics files are parsed in the browser and are not uploaded by this demo.
-- Project 3 sends only the city name and weather request to Open-Meteo. It does not request precise browser GPS location.
-- Confirmed Project 2/3 checklist data may be stored in browser localStorage on that device.
-
-## Third-party services and licences
-
-- WebLLM is Apache-2.0 licensed.
-- SmolLM2 is Apache-2.0 licensed.
-- TensorFlow.js is Apache-2.0 licensed.
-- Project 3 uses the Open-Meteo Free API for this non-commercial educational project. Open-Meteo weather data is provided under CC BY 4.0 and attribution is shown in the Project 3 interface.
-- Open-Meteo's free API is for non-commercial use. Before using this project commercially, switch to a commercial weather plan/provider and review the current terms.
-
-## Important
-
-AI-generated checklists can be incomplete or wrong. The app is designed to require user review before a list is treated as final.
-
-No paid AI/API service should be added to this project without explicit approval from the project owner.
-
-
-## Privacy page
-
-The site includes a plain-language Privacy & Data Use page at `privacy.html`. It explains which data stays on-device, which requests go to external services, browser permissions, localStorage, third-party resources, AI limitations and the rule that paid AI/API services require explicit approval before they are connected.
-
+See `privacy.html` for the plain-language Privacy & Data Use page. No paid AI/API service should be added without explicit project-owner approval.
 
 ## Installable app
 
-Smart Ready is also an installable Progressive Web App (PWA).
-
-- Android/Chrome: open the site and tap **Install app**. If the browser does not show the install prompt, use the browser menu and choose **Install app** or **Add to Home screen**.
-- iPhone/iPad: open the site in Safari, tap **Share**, then **Add to Home Screen**.
-- The installed app opens in its own standalone window.
-- The app shell is cached for faster reopening. Some features still need internet: first-time AI/library/model downloads and live weather.
-- No paid AI API is added by the PWA installation.
+Smart Ready is a Progressive Web App (PWA). The install button lives on the Learning Path home screen so installation does not compete with project tasks.
