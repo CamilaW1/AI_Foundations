@@ -7,82 +7,65 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>AI Builder — Smart Planner</title>
+    <title>AI Builder — Build 2: Plan</title>
 
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="AI Builder">
+    <link rel="stylesheet" href="css/style.css?v=20">
+    <link rel="stylesheet" href="css/project2.css?v=20">
 
-    <link rel="stylesheet" href="css/style.css?v=8">
-    <link rel="stylesheet" href="css/project2.css?v=4">
-    <script type="module" src="js/project2.js?v=4"></script>
-    <script src="js/pwa.js?v=1" defer></script>
+    <script type="module" src="js/project2.js?v=20"></script>
+    <script src="js/pwa.js?v=2" defer></script>
 </head>
 <body>
     <main class="app-shell">
         <header class="topbar">
-            <div class="brand">
+            <a class="brand brand-link" href="index.html">
                 <div class="brand-mark">AI</div>
                 <div>
                     <h1>AI Builder</h1>
-                    <p>Build real AI products</p>
+                    <p>Smart Ready</p>
                 </div>
-            </div>
-            <div class="topbar-actions">
-                <button id="installAppButton" type="button" class="install-app-button">Install app</button>
-                <div class="build-pill">Build 0.2</div>
-            </div>
+            </a>
+            <div class="build-pill">Build 2 · Plan</div>
         </header>
 
-        <nav class="project-nav" aria-label="Projects">
-            <a href="index.html">Project 1</a>
-            <a href="project2.html" class="active">Project 2</a>
-            <a href="project3.html">Project 3</a>
+        <nav class="journey-nav" aria-label="Learning path">
+            <a href="project1.html">1 See</a>
+            <a href="project2.html" class="active">2 Plan</a>
+            <a href="project3.html">3 Connect</a>
+            <a href="project4.html">4 Act</a>
+            <a href="project5.html">5 Remember</a>
+            <a href="project6.html">6 Trust</a>
         </nav>
 
         <section class="hero-card project-two-hero">
-            <div class="eyebrow">Project 2</div>
-            <h2>Smart Planner</h2>
-            <p>Give a real local LLM your plan and turn its structured answer into a useful checklist.</p>
+            <div class="eyebrow">Build 2</div>
+            <h2>Teach Smart Ready to plan</h2>
+            <p>Build 1 taught the app to recognize objects. Now a local LLM will decide what objects might be useful in the first place.</p>
+
+            <div class="bridge-line">
+                <span>Build 1:</span><strong>👁 See objects</strong>
+                <span>+ Build 2:</span><strong>🧠 Plan what you need</strong>
+            </div>
 
             <div class="local-badges">
                 <span>Runs on your device</span>
-                <span>$0 API cost</span>
+                <span>$0 AI API cost</span>
                 <span>No API key</span>
             </div>
 
-            <div class="progress-track" aria-label="Project progress">
-                <span id="progressBar"></span>
-            </div>
+            <div class="progress-track"><span id="progressBar"></span></div>
             <div class="progress-row">
-                <span id="progressText">Step 1 of 6</span>
-                <span id="progressPct">16%</span>
+                <span id="progressText">Step 1 of 4</span>
+                <span id="progressPct">25%</span>
             </div>
         </section>
 
         <section id="workspace" class="main-card" aria-live="polite"></section>
 
-        <section class="ali-card">
-            <div class="ali-row">
-                <div class="ali-avatar">AI</div>
-                <div>
-                    <strong>AI Help</strong>
-                    <p id="helpText">Tell the planner what you are doing.</p>
-                </div>
-            </div>
-            <div class="help-actions">
-                <button id="explainBtn" type="button" class="help-button">Explain</button>
-                <button id="hintBtn" type="button" class="help-button primary-help">Hint</button>
-            </div>
-            <div id="helpBox" class="help-box hidden"></div>
-        </section>
-
         <footer class="site-footer">
-            <a href="index.html">Project 1</a>
-            <a href="project2.html">Project 2</a>
-            <a href="project3.html">Project 3</a>
+            <a href="index.html">Learning path</a>
             <a href="privacy.html">Privacy & Data Use</a>
         </footer>
     </main>
