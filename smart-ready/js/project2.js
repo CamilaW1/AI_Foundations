@@ -1,130 +1,117 @@
 import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
 const MODEL_ID = "SmolLM2-360M-Instruct-q4f32_1-MLC";
+const PROGRESS_KEY = "smartReadyProgress";
+const CHECKLIST_KEY = "smartReadyActiveChecklist";
 
 const state = {
     step: 1,
     plan: "",
     prompt: "",
     engine: null,
-    modelReady: false,
-    modelLoading: false,
-    aiResult: null,
-    rawResponse: "",
-    checklist: [],
-    hintUsed: false
+    result: null,
+    checklist: []
 };
 
 const workspace = document.getElementById("workspace");
-const helpText = document.getElementById("helpText");
 const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
 const progressPct = document.getElementById("progressPct");
-const explainBtn = document.getElementById("explainBtn");
-const hintBtn = document.getElementById("hintBtn");
-const helpBox = document.getElementById("helpBox");
 
-const explanations = {
-    1: "Natural-language input is the user's real request. The model needs enough context to know what it should prepare for.",
-    2: "A prompt is the instruction we send to the model. Good prompts include the user's plan plus a clear job for the model.",
-    3: "This project uses a local browser model. The model is downloaded to the device and runs with WebGPU. No OpenAI API or paid token service is used.",
-    4: "Structured JSON makes the answer predictable for JavaScript. The app can find event names and item names without trying to understand a paragraph.",
-    5: "AI suggestions should be reviewed before the app treats them as correct. The user can remove or add items.",
-    6: "Project 1 learned to see objects. Project 2 learned to decide what may be needed. Together they are the foundation of Smart Ready."
-};
-
-const hints = {
-    1: "Add useful context when it matters: activity, destination, timing, or limits such as carry-on only.",
-    2: "The prompt should clearly describe the user's plan and ask for a structured checklist.",
-    3: "Load the local model first. The first download is large, but the browser can cache it for later visits.",
-    4: "Structured JSON gives the app event names and item lists it can use directly.",
-    5: "Review the AI suggestions, remove anything unnecessary, and add anything missing.",
-    6: "The next connection is camera verification from Project 1."
-};
-
-function setHelp(text) {
-    helpText.textContent = text;
+function markComplete() {
+    const progress = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "{}");
+    progress.build2 = true;
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
 }
 
 function setStep(step) {
     state.step = step;
-    updateProgress();
+    const percent = Math.round((step / 4) * 100);
+    progressBar.style.width = percent + "%";
+    progressText.textContent = "Step " + step + " of 4";
+    progressPct.textContent = percent + "%";
     render();
 }
 
-function updateProgress() {
-    const percent = state.step === 6 ? 92 : Math.round((state.step / 6) * 100);
-    progressBar.style.width = `${percent}%`;
-    progressText.textContent = state.step === 6 ? "Final build step" : `Step ${state.step} of 6`;
-    progressPct.textContent = `${percent}%`;
-}
-
 function render() {
-    helpBox.classList.add("hidden");
-
     if (state.step === 1) renderPlan();
-    if (state.step === 2) renderPromptLesson();
-    if (state.step === 3) renderLocalModel();
-    if (state.step === 4) renderStructuredLesson();
-    if (state.step === 5) renderReview();
-    if (state.step === 6) renderFinish();
+    if (state.step === 2) renderHowLLMWorks();
+    if (state.step === 3) renderModelWork();
+    if (state.step === 4) renderReview();
 }
 
 function renderPlan() {
-    setHelp("Tell the planner what you are doing. One clear sentence is enough to start.");
-
     workspace.innerHTML = `
-        <div class="eyebrow">Start with real context</div>
+        <div class="eyebrow">Give AI a real goal</div>
         <h2 class="section-title">What are you doing?</h2>
-        <p class="section-copy">Write a real plan. The local AI will use it to suggest what you may need.</p>
+        <p class="section-copy">Write one normal sentence. Smart Ready will turn it into a preparation list.</p>
 
-        <textarea id="planInput" class="plan-input" placeholder="Example: Tomorrow I’m going to work and then swimming.">${escapeHtml(state.plan)}</textarea>
+        <textarea id="planInput" class="plan-input" placeholder="Tomorrow I'm going to work and then swimming.">${escapeHtml(state.plan)}</textarea>
 
         <div class="example-row">
-            <button class="example-chip" data-example="Tomorrow I’m going to work and then swimming.">Work + swimming</button>
-            <button class="example-chip" data-example="I’m flying to Toronto for 3 days with only a carry-on.">3-day trip</button>
-            <button class="example-chip" data-example="We’re going to the beach with the family for the afternoon.">Family beach</button>
+            <button class="example-chip" data-example="Tomorrow I'm going to work and then swimming.">💼 Work + swimming</button>
+            <button class="example-chip" data-example="I'm flying to Toronto for 3 days with only a carry-on.">✈️ 3-day trip</button>
+            <button class="example-chip" data-example="We're going to the beach with the family for the afternoon.">🏖️ Family beach</button>
+            <button class="example-chip" data-example="I have school in the morning and soccer practice after school.">⚽ School + soccer</button>
         </div>
 
-        <button id="usePlan" type="button" class="button" style="width:100%">Use this plan →</button>
+        <button id="generatePlan" type="button" class="button full-button">Build my checklist →</button>
+
+        <div class="concept-note"><strong>Prompt</strong> = the instruction and context you give an LLM.</div>
     `;
 
     const input = document.getElementById("planInput");
 
     workspace.querySelectorAll("[data-example]").forEach(button => {
         button.addEventListener("click", () => {
-            input.value = button.dataset.example;
-            state.plan = input.value;
+            state.plan = button.dataset.example;
+            input.value = state.plan;
+            state.prompt = buildPrompt(state.plan);
+            setStep(2);
         });
     });
 
-    document.getElementById("usePlan").addEventListener("click", () => {
+    document.getElementById("generatePlan").addEventListener("click", () => {
         const value = input.value.trim();
         if (!value) {
             input.focus();
             return;
         }
         state.plan = value;
+        state.prompt = buildPrompt(value);
         setStep(2);
     });
 }
 
-function renderPromptLesson() {
-    setHelp("The app now turns your plan into a clear instruction for the local AI.");
-
-    state.prompt = buildPrompt(state.plan);
+function renderHowLLMWorks() {
+    const pieces = simpleTokenView(state.plan);
 
     workspace.innerHTML = `
-        <div class="eyebrow">Prompt building</div>
-        <h2 class="section-title">Turn your plan into an AI instruction</h2>
-        <p class="section-copy">The prompt combines your real plan with a clear request for a structured checklist.</p>
+        <div class="eyebrow">What an LLM actually does</div>
+        <h2 class="section-title">Text goes in as small pieces</h2>
+        <p class="section-copy">This is a simplified token view. Real tokenization can split text differently, but the important idea is that an LLM works with tokens and predicts what should come next.</p>
 
-        <div class="prompt-box">${escapeHtml(state.prompt)}</div>
+        <div class="token-box">
+            ${pieces.map(piece => `<span>${escapeHtml(piece)}</span>`).join("")}
+        </div>
 
-        <button id="continuePrompt" type="button" class="button" style="width:100%;margin-top:14px">Run this with local AI →</button>
+        <div class="flow-line">
+            <span>Your text</span><b>→</b><span>tokens</span><b>→</b><span>LLM</span><b>→</b><span>next tokens</span>
+        </div>
+
+        <div class="learned-card">
+            <strong>Why can an LLM sound confident and still be wrong?</strong>
+            <p>It generates likely next tokens from learned patterns. It is not automatically checking a perfect database of facts.</p>
+        </div>
+
+        <div class="auto-step">Starting the local model…</div>
     `;
 
-    document.getElementById("continuePrompt").addEventListener("click", () => setStep(3));
+    setTimeout(() => setStep(3), 1800);
+}
+
+function simpleTokenView(text) {
+    return text.match(/[A-Za-z0-9']+|[^\sA-Za-z0-9]/g)?.slice(0, 18) || [text];
 }
 
 function buildPrompt(plan) {
@@ -144,250 +131,187 @@ Return ONLY valid JSON in this exact shape:
 
 Rules:
 - Use short, concrete item names.
-- Include only things a person may realistically need to bring or prepare.
-- Group items by event when there is more than one activity.
+- Include only realistic things a person may need to bring or prepare.
+- Group items by activity when there is more than one.
 - Do not include explanations outside the JSON.`;
 }
 
-function renderLocalModel() {
-    setHelp("This is a real local LLM. It runs in your browser and does not use a paid API or OpenAI tokens.");
-
+async function renderModelWork() {
     workspace.innerHTML = `
-        <div class="eyebrow">Real local LLM</div>
-        <h2 class="section-title">Run AI on this device</h2>
-        <p class="section-copy">First load the model, then ask it to create the checklist from your prompt.</p>
-
-        <div class="prompt-box">${escapeHtml(state.prompt)}</div>
+        <div class="eyebrow">Local LLM</div>
+        <h2 class="section-title">Smart Ready is planning on this device</h2>
+        <p class="section-copy">The model is downloaded to your browser and runs locally. The first load can take several minutes on a phone.</p>
 
         <div class="model-card">
-            <h3>Local model</h3>
-            <div><strong>SmolLM2 360M Instruct</strong></div>
-            <div class="model-note">Runs through WebLLM/WebGPU. No API key. No paid token billing. First load may download roughly 0.6 GB of model data and can take several minutes on mobile.</div>
-
-            <div class="model-progress">
-                <span id="modelProgress"></span>
+            <div class="model-row">
+                <div class="model-orb-small">🧠</div>
+                <div>
+                    <strong>SmolLM2 360M Instruct</strong>
+                    <p class="small-note">Free local model · no paid token billing</p>
+                </div>
             </div>
-            <div id="modelStatus" class="model-note">${state.modelReady ? "Model ready ✓" : "Not loaded yet"}</div>
-
-            <div class="action-stack">
-                <button id="loadModel" type="button" class="button secondary" ${state.modelLoading || state.modelReady ? "disabled" : ""}>${state.modelReady ? "Local AI ready ✓" : "Load local AI"}</button>
-                <button id="generate" type="button" class="button teal" ${state.modelReady ? "" : "disabled"}>Generate my checklist</button>
-            </div>
+            <div class="model-progress"><span id="modelProgress"></span></div>
+            <div id="modelStatus" class="small-note">Checking WebGPU…</div>
         </div>
 
-        <div id="compatibility" class="warning-box hidden"></div>
+        <details class="data-details">
+            <summary>See the prompt the app sends</summary>
+            <pre class="prompt-box">${escapeHtml(state.prompt)}</pre>
+        </details>
+
+        <div id="modelWarning"></div>
     `;
 
-    const progress = document.getElementById("modelProgress");
-    if (state.modelReady) {
-        progress.style.width = "100%";
-    }
-
-    document.getElementById("loadModel").addEventListener("click", loadModel);
-    document.getElementById("generate").addEventListener("click", generateChecklist);
-}
-
-async function loadModel() {
-    const status = document.getElementById("modelStatus");
-    const progress = document.getElementById("modelProgress");
-    const loadButton = document.getElementById("loadModel");
-    const compatibility = document.getElementById("compatibility");
-
     if (!navigator.gpu) {
-        compatibility.classList.remove("hidden");
-        compatibility.textContent = "WebGPU is not available in this browser. Try a current Chrome/Edge browser on a compatible device. This project will not switch to a paid cloud API automatically.";
+        document.getElementById("modelWarning").innerHTML =
+            '<div class="warning-box">This browser does not expose WebGPU, so the local LLM cannot run here. Try current Chrome/Edge on a compatible device. The app will not switch to a paid cloud model automatically.</div>';
         return;
     }
 
-    state.modelLoading = true;
-    loadButton.disabled = true;
-    loadButton.textContent = "Loading…";
-    status.textContent = "Starting local model…";
+    const status = document.getElementById("modelStatus");
+    const progress = document.getElementById("modelProgress");
 
     try {
         state.engine = await webllm.CreateMLCEngine(MODEL_ID, {
             initProgressCallback: report => {
                 status.textContent = report.text || "Loading local AI…";
-                const value = Number(report.progress || 0);
-                progress.style.width = `${Math.round(value * 100)}%`;
+                progress.style.width = Math.round(Number(report.progress || 0) * 100) + "%";
             }
         });
 
-        state.modelReady = true;
-        state.modelLoading = false;
+        status.textContent = "Model ready · generating checklist…";
         progress.style.width = "100%";
-        status.textContent = "Model ready ✓";
-        loadButton.textContent = "Local AI ready ✓";
-        document.getElementById("generate").disabled = false;
-        setHelp("Local AI is ready. Now generate a real checklist from your plan.");
-    } catch (error) {
-        state.modelLoading = false;
-        loadButton.disabled = false;
-        loadButton.textContent = "Try loading again";
-        compatibility.classList.remove("hidden");
-        compatibility.textContent = "The local model could not load on this device/browser. Nothing was sent to a paid API. Try again on a WebGPU-compatible browser.";
-        status.textContent = "Model not loaded";
-    }
-}
 
-async function generateChecklist() {
-    if (!state.engine) {
-        return;
-    }
-
-    const generateButton = document.getElementById("generate");
-    const status = document.getElementById("modelStatus");
-
-    generateButton.disabled = true;
-    generateButton.textContent = "Thinking locally…";
-    status.textContent = "Generating on this device…";
-
-    try {
         const response = await state.engine.chat.completions.create({
             messages: [
-                {
-                    role: "system",
-                    content: "You are a practical preparation assistant. Follow the requested JSON format exactly."
-                },
-                {
-                    role: "user",
-                    content: state.prompt
-                }
+                { role: "system", content: "You are a practical preparation assistant. Follow the requested JSON format exactly." },
+                { role: "user", content: state.prompt }
             ],
             temperature: 0.2,
             max_tokens: 420,
             response_format: { type: "json_object" }
         });
 
-        state.rawResponse = response.choices?.[0]?.message?.content || "";
-        state.aiResult = parseModelJson(state.rawResponse);
+        const raw = response.choices?.[0]?.message?.content || "";
+        state.result = parseJson(raw);
 
-        if (!state.aiResult || !Array.isArray(state.aiResult.events) || state.aiResult.events.length === 0) {
-            throw new Error("Invalid structured response");
-        }
+        if (!state.result?.events?.length) throw new Error("Bad JSON");
 
-        state.checklist = normalizeChecklist(state.aiResult);
+        state.checklist = normalize(state.result);
         setStep(4);
-    } catch (error) {
-        status.textContent = "The local model did not return usable JSON.";
-        generateButton.disabled = false;
-        generateButton.textContent = "Try again";
-        setHelp("The model stayed local, but its answer was not structured correctly. Try Generate again.");
+    } catch {
+        status.textContent = "The local model did not return usable structured data.";
+        document.getElementById("modelWarning").innerHTML =
+            '<div class="warning-box">Try reloading this page and running the plan again. Nothing was sent to a paid AI API.</div>';
     }
 }
 
-function parseModelJson(text) {
+function parseJson(text) {
     try {
         return JSON.parse(text);
-    } catch (error) {
-        const firstBrace = text.indexOf("{");
-        const lastBrace = text.lastIndexOf("}");
-
-        if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-            return null;
-        }
-
+    } catch {
+        const first = text.indexOf("{");
+        const last = text.lastIndexOf("}");
+        if (first === -1 || last <= first) return null;
         try {
-            return JSON.parse(text.slice(firstBrace, lastBrace + 1));
-        } catch (nestedError) {
+            return JSON.parse(text.slice(first, last + 1));
+        } catch {
             return null;
         }
     }
 }
 
-function normalizeChecklist(result) {
+function normalize(result) {
     return result.events
-        .filter(event => event && event.name && Array.isArray(event.items))
+        .filter(event => event?.name && Array.isArray(event.items))
         .map(event => ({
             name: String(event.name).trim(),
-            items: event.items
-                .map(item => String(item).trim())
-                .filter(Boolean)
-                .slice(0, 12)
+            items: event.items.map(item => String(item).trim()).filter(Boolean).slice(0, 12)
         }))
-        .filter(event => event.items.length > 0)
+        .filter(event => event.items.length)
         .slice(0, 6);
 }
 
-function renderStructuredLesson() {
-    setHelp("The local model returned structured JSON. The app can now turn this data directly into a checklist.");
-
-    workspace.innerHTML = `
-        <div class="eyebrow">Structured output</div>
-        <h2 class="section-title">AI returned organized data</h2>
-        <p class="section-copy">Instead of a paragraph, the model returned event names and item lists in a predictable structure.</p>
-
-        <div class="json-box raw-response">${escapeHtml(JSON.stringify(state.aiResult, null, 2))}</div>
-
-        <button id="buildChecklist" type="button" class="button" style="width:100%;margin-top:14px">Build the checklist →</button>
-    `;
-
-    document.getElementById("buildChecklist").addEventListener("click", () => setStep(5));
-}
-
 function renderReview() {
-    setHelp("AI can be useful and still be wrong. Review the list before you trust it.");
+    saveChecklist();
+    markComplete();
+
+    const trained = JSON.parse(localStorage.getItem("smartReadyVisionModel") || "null");
+    const known = (trained?.items || []).map(item => item.toLowerCase());
 
     workspace.innerHTML = `
-        <div class="eyebrow">Human review</div>
-        <h2 class="section-title">Review your checklist</h2>
-        <p class="section-copy">Remove anything unnecessary and add anything the AI missed.</p>
+        <div class="eyebrow">AI output → app UI</div>
+        <h2 class="section-title">Your first AI-generated checklist</h2>
+        <p class="section-copy">The LLM generated structured data. The app turned that data into something a person can edit and use.</p>
 
         <div id="checklist"></div>
 
         <div class="add-row">
-            <input id="newItem" maxlength="40" placeholder="Add an item">
-            <button id="addItem" type="button" class="button secondary">Add item</button>
+            <input id="newItem" maxlength="40" placeholder="Add something the AI missed">
+            <button id="addItem" type="button" class="button secondary">Add</button>
         </div>
 
-        <button id="confirmList" type="button" class="button" style="width:100%;margin-top:14px">Confirm my list ✓</button>
+        <details class="data-details">
+            <summary>See what the app received (JSON)</summary>
+            <pre class="json-box">${escapeHtml(JSON.stringify(state.result, null, 2))}</pre>
+        </details>
+
+        <div class="learned-card">
+            <strong>You just learned</strong>
+            <p><b>LLM</b> generates tokens. <b>Structured output</b> makes the result easier for software to use. <b>Human review</b> matters because AI can be confidently wrong.</p>
+        </div>
+
+        ${known.length ? `
+            <div class="bridge-card">
+                <strong>Build 1 is already useful here</strong>
+                <p>Items that match classes from your vision model can be checked with the camera.</p>
+                <a class="button secondary" href="project1.html?mode=check">Try camera check →</a>
+            </div>
+        ` : ""}
+
+        <div class="next-build-card">
+            <span>Build 2 complete ✓</span>
+            <strong>Next: give Smart Ready real schedule and weather context.</strong>
+            <a class="button" href="project3.html">Start Build 3 →</a>
+        </div>
     `;
 
-    paintChecklist();
+    paintChecklist(known);
 
-    document.getElementById("addItem").addEventListener("click", () => {
+    const add = () => {
         const input = document.getElementById("newItem");
         const value = input.value.trim();
-
-        if (!value) {
-            input.focus();
-            return;
-        }
-
-        if (!state.checklist.length) {
-            state.checklist.push({ name: "My plan", items: [] });
-        }
-
+        if (!value) return;
+        if (!state.checklist.length) state.checklist.push({ name: "My plan", items: [] });
         state.checklist[0].items.push(value);
         input.value = "";
-        paintChecklist();
-    });
+        saveChecklist();
+        paintChecklist(known);
+    };
 
-    document.getElementById("confirmList").addEventListener("click", () => {
-        localStorage.setItem("smartReadyProject2Checklist", JSON.stringify({
-            plan: state.plan,
-            events: state.checklist
-        }));
-        setStep(6);
+    document.getElementById("addItem").addEventListener("click", add);
+    document.getElementById("newItem").addEventListener("keydown", event => {
+        if (event.key === "Enter") add();
     });
 }
 
-function paintChecklist() {
+function paintChecklist(known) {
     const container = document.getElementById("checklist");
-    if (!container) {
-        return;
-    }
 
     container.innerHTML = state.checklist.map((event, eventIndex) => `
         <section class="checklist-section">
             <h3>${escapeHtml(event.name)}</h3>
-            ${event.items.map((item, itemIndex) => `
-                <div class="check-row">
-                    <input type="checkbox" aria-label="Mark ${escapeHtml(item)} ready">
-                    <span>${escapeHtml(item)}</span>
-                    <button type="button" class="remove-check" data-remove="${eventIndex}:${itemIndex}" aria-label="Remove ${escapeHtml(item)}">×</button>
-                </div>
-            `).join("")}
+            ${event.items.map((item, itemIndex) => {
+                const lower = item.toLowerCase();
+                const camera = known.some(label => lower.includes(label) || label.includes(lower));
+                return `
+                    <div class="check-row">
+                        <span>${camera ? "📷" : "○"}</span>
+                        <span>${escapeHtml(item)}</span>
+                        <button type="button" class="remove-check" data-remove="${eventIndex}:${itemIndex}">×</button>
+                    </div>
+                `;
+            }).join("")}
         </section>
     `).join("");
 
@@ -395,36 +319,25 @@ function paintChecklist() {
         button.addEventListener("click", () => {
             const [eventIndex, itemIndex] = button.dataset.remove.split(":").map(Number);
             state.checklist[eventIndex].items.splice(itemIndex, 1);
-            state.checklist = state.checklist.filter(event => event.items.length > 0);
-            paintChecklist();
+            state.checklist = state.checklist.filter(event => event.items.length);
+            saveChecklist();
+            paintChecklist(known);
         });
     });
 }
 
-function renderFinish() {
-    setHelp("Project 2 is complete. The next step is to connect this generated checklist to the camera detector from Project 1.");
+function saveChecklist() {
+    const payload = {
+        source: "build2",
+        plan: state.plan,
+        events: state.checklist.map(event => ({
+            name: event.name,
+            items: event.items.map(name => ({ name, ready: false }))
+        }))
+    };
 
-    workspace.innerHTML = `
-        <div class="done-card">
-            <div class="done-icon">✓</div>
-            <div class="eyebrow">Project 2 complete</div>
-            <h2 class="section-title" style="margin-top:8px">You built a local LLM planner.</h2>
-            <p class="section-copy">You turned natural-language input into a prompt, ran a real LLM locally, requested structured JSON, converted it into UI, and added human review.</p>
-
-            <div class="local-badges" style="justify-content:center">
-                <span>Local LLM ✓</span>
-                <span>Prompt ✓</span>
-                <span>JSON ✓</span>
-                <span>Human review ✓</span>
-            </div>
-
-            <a class="button" href="index.html" style="display:inline-block;text-decoration:none;margin-top:18px">Open Project 1 detector</a>
-        </div>
-    `;
-
-    progressBar.style.width = "100%";
-    progressText.textContent = "Project complete";
-    progressPct.textContent = "100%";
+    localStorage.setItem("smartReadyProject2Checklist", JSON.stringify(payload));
+    localStorage.setItem(CHECKLIST_KEY, JSON.stringify(payload));
 }
 
 function escapeHtml(value) {
@@ -437,15 +350,4 @@ function escapeHtml(value) {
     })[character]);
 }
 
-explainBtn.addEventListener("click", () => {
-    helpBox.textContent = explanations[state.step];
-    helpBox.classList.remove("hidden");
-});
-
-hintBtn.addEventListener("click", () => {
-    helpBox.textContent = hints[state.step];
-    helpBox.classList.remove("hidden");
-});
-
-updateProgress();
-render();
+setStep(1);
