@@ -1,10 +1,14 @@
-const CACHE_NAME = "ai-builder-smart-ready-v1";
+const CACHE_NAME = "ai-builder-smart-ready-v3";
 
 const APP_SHELL = [
     "./",
     "./index.html",
+    "./project1.html",
     "./project2.html",
     "./project3.html",
+    "./project4.html",
+    "./project5.html",
+    "./project6.html",
     "./privacy.html",
     "./manifest.webmanifest",
     "./icons/app-icon.svg",
@@ -13,9 +17,13 @@ const APP_SHELL = [
     "./css/project2.css",
     "./css/project3.css",
     "./css/privacy.css",
+    "./js/home.js",
     "./js/app.js",
     "./js/project2.js",
     "./js/project3.js",
+    "./js/project4.js",
+    "./js/project5.js",
+    "./js/project6.js",
     "./js/pwa.js"
 ];
 
@@ -42,15 +50,10 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
     const request = event.request;
 
-    if (request.method !== "GET") {
-        return;
-    }
+    if (request.method !== "GET") return;
 
     const url = new URL(request.url);
-
-    if (url.origin !== self.location.origin) {
-        return;
-    }
+    if (url.origin !== self.location.origin) return;
 
     if (request.mode === "navigate") {
         event.respondWith(
@@ -60,10 +63,7 @@ self.addEventListener("fetch", event => {
                     caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
                     return response;
                 })
-                .catch(async () => {
-                    return (await caches.match(request)) ||
-                        (await caches.match("./index.html"));
-                })
+                .catch(async () => (await caches.match(request)) || (await caches.match("./index.html")))
         );
         return;
     }
