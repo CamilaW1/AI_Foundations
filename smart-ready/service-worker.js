@@ -1,4 +1,4 @@
-const CACHE_NAME = "ai-builder-smart-ready-v5";
+const CACHE_NAME = "ai-builder-smart-ready-v8";
 
 const APP_SHELL = [
     "./",
@@ -17,7 +17,7 @@ const APP_SHELL = [
     "./css/project2.css",
     "./css/project3.css",
     "./css/privacy.css",
-    "./js/home.js",
+    "./js/home.js",\n    "./js/core.js",
     "./js/app.js",
     "./js/project2.js",
     "./js/project3.js",
