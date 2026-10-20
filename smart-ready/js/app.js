@@ -429,7 +429,7 @@ function renderCollect() {
                     </div>
                 `;
             }).join("")}
-            <div class="dataset-total">${totalPhotos()} / 15 examples</div>
+            <div class="dataset-total">${totalPhotos()} / 15 examples · Saved on this device ✓</div>
         </div>
 
         <div class="photo-grid" id="photoGrid"></div>
@@ -669,9 +669,13 @@ function renderThresholdLab() {
 
         <pre id="thresholdCode" class="code-box"></pre>
 
+        ${confidence >= 0.95 ? `
+            <div class="warning-box"><strong>Your simple KNN model is very confident.</strong> Unknown objects can still get 100% confidence when all nearest examples belong to one known class. This is a real limitation: confidence alone is not perfect out-of-distribution detection.</div>
+        ` : ""}
+
         <div class="learned-card">
             <strong>You just learned</strong>
-            <p>Training data ≠ test data. A prediction can be wrong. Confidence helps your app decide when not to pretend it knows.</p>
+            <p>Training data ≠ test data. A prediction can be wrong. Confidence thresholds help, but simple models can still be overconfident on unfamiliar input.</p>
         </div>
 
         <div id="nextBuild" class="next-build-card hidden">
