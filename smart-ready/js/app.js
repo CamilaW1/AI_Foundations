@@ -675,7 +675,7 @@ function renderThresholdLab() {
 
         <div class="learned-card">
             <strong>You just learned</strong>
-            <p>Training data ≠ test data. A prediction can be wrong. Confidence thresholds help, but simple models can still be overconfident on unfamiliar input.</p>
+            <p>Training data ≠ test data. A prediction can be wrong. A confidence score is <strong>not</strong> the same as “probability the answer is correct.” Thresholds help, but simple models can still be overconfident on unfamiliar input.</p>
         </div>
 
         <div id="nextBuild" class="next-build-card hidden">
