@@ -10,7 +10,8 @@ const state = {
     prompt: "",
     engine: null,
     result: null,
-    checklist: []
+    checklist: [],
+    usedFallback: false
 };
 
 const workspace = document.getElementById("workspace");
@@ -200,10 +201,46 @@ async function renderModelWork() {
         state.checklist = normalize(state.result);
         setStep(4);
     } catch {
-        status.textContent = "The local model did not return usable structured data.";
-        document.getElementById("modelWarning").innerHTML =
-            '<div class="warning-box">Try reloading this page and running the plan again. Nothing was sent to a paid AI API.</div>';
+        state.usedFallback = true;
+        state.result = fallbackChecklist(state.plan);
+        state.checklist = normalize(state.result);
+        setStep(4);
     }
+}
+
+function fallbackChecklist(plan) {
+    const text = plan.toLowerCase();
+    const events = [];
+
+    if (text.includes("work")) {
+        events.push({ name: "Work", items: ["Laptop", "Charger", "Access Card"] });
+    }
+
+    if (text.includes("swim")) {
+        events.push({ name: "Swimming", items: ["Swimsuit", "Towel", "Goggles", "Water Bottle"] });
+    }
+
+    if (text.includes("flight") || text.includes("flying") || text.includes("trip") || text.includes("toronto")) {
+        events.push({ name: "Trip", items: ["Passport", "Charger", "Clothes", "Water Bottle"] });
+    }
+
+    if (text.includes("beach")) {
+        events.push({ name: "Beach", items: ["Towel", "Sunscreen", "Water Bottle", "Snacks"] });
+    }
+
+    if (text.includes("school")) {
+        events.push({ name: "School", items: ["Notebook", "Water Bottle", "Pencil Case"] });
+    }
+
+    if (text.includes("soccer")) {
+        events.push({ name: "Soccer", items: ["Soccer Shoes", "Water Bottle", "Sports Clothes"] });
+    }
+
+    if (!events.length) {
+        events.push({ name: "My plan", items: ["Phone", "Water Bottle", "Charger"] });
+    }
+
+    return { events };
 }
 
 function parseJson(text) {
@@ -243,6 +280,8 @@ function renderReview() {
         <div class="eyebrow">AI output → app UI</div>
         <h2 class="section-title">Your first AI-generated checklist</h2>
         <p class="section-copy">The LLM generated structured data. The app turned that data into something a person can edit and use.</p>
+
+        ${state.usedFallback ? '<div class="warning-box">The free local model did not return usable structured data on this run, so Smart Ready used a fast learning fallback. No paid cloud model was used.</div>' : ""}
 
         <div id="checklist"></div>
 
