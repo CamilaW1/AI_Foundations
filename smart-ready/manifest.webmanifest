@@ -1,7 +1,7 @@
 {
   "name": "AI Builder — Smart Ready",
   "short_name": "AI Builder",
-  "description": "Build real AI products with computer vision, a local LLM and connected real-world data.",
+  "description": "Build one AI product from computer vision to an agent, RAG and evals.",
   "id": "./",
   "start_url": "./index.html",
   "scope": "./",
@@ -29,5 +29,10 @@
       "type": "image/svg+xml",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    { "name": "Learning path", "url": "./index.html" },
+    { "name": "Vision model", "url": "./project1.html" },
+    { "name": "AI agent", "url": "./project4.html" }
   ]
 }
