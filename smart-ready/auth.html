@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>AI Builder — Account</title>
+
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/style.css?v=50">
+    <script type="module" src="js/auth.js?v=1"></script>
+</head>
+<body>
+    <main class="app-shell auth-shell">
+        <header class="topbar">
+            <a class="brand brand-link" href="index.html">
+                <div class="brand-mark">AI</div>
+                <div>
+                    <h1>AI Builder</h1>
+                    <p>Your account</p>
+                </div>
+            </a>
+            <a class="build-pill brand-link" href="index.html">Learning path</a>
+        </header>
+
+        <section class="auth-hero">
+            <div class="auth-art">
+                <span>✨</span>
+                <span>🧠</span>
+                <span>🚀</span>
+            </div>
+            <div class="eyebrow">Your AI Builder account</div>
+            <h2>Save your learning journey</h2>
+            <p>Sign in with email and password or use a social account. Your password is handled by the authentication service — AI Builder never stores the raw password.</p>
+        </section>
+
+        <section class="auth-card">
+            <div id="authStatus" class="auth-service-status"></div>
+
+            <div id="signedOutView">
+                <div class="auth-tabs" role="tablist">
+                    <button id="signInTab" class="auth-tab active" type="button">Sign in</button>
+                    <button id="signUpTab" class="auth-tab" type="button">Create account</button>
+                </div>
+
+                <div id="socialButtons" class="social-auth-grid">
+                    <button type="button" class="social-auth-button google" data-provider="google">
+                        <span class="social-icon">G</span>
+                        <span>Continue with Google</span>
+                    </button>
+                    <button type="button" class="social-auth-button facebook" data-provider="facebook">
+                        <span class="social-icon">f</span>
+                        <span>Continue with Facebook</span>
+                    </button>
+                    <button type="button" class="social-auth-button github" data-provider="github">
+                        <span class="social-icon">⌘</span>
+                        <span>Continue with GitHub</span>
+                    </button>
+                </div>
+
+                <div class="auth-divider"><span>or use email</span></div>
+
+                <form id="authForm" novalidate>
+                    <label class="auth-field">
+                        <span>Email</span>
+                        <input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com" required>
+                    </label>
+
+                    <label class="auth-field">
+                        <span>Password</span>
+                        <div class="password-wrap">
+                            <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+                            <button id="togglePassword" class="password-toggle" type="button" aria-label="Show password">Show</button>
+                        </div>
+                    </label>
+
+                    <div id="confirmPasswordField" class="auth-field hidden">
+                        <span>Confirm password</span>
+                        <div class="password-wrap">
+                            <input id="confirmPasswordInput" type="password" autocomplete="new-password" placeholder="Type it again">
+                            <button id="toggleConfirmPassword" class="password-toggle" type="button" aria-label="Show confirmation password">Show</button>
+                        </div>
+                    </div>
+
+                    <div id="passwordRules" class="password-rules hidden">
+                        <span data-rule="length">○ At least 8 characters</span>
+                        <span data-rule="upper">○ One uppercase letter</span>
+                        <span data-rule="lower">○ One lowercase letter</span>
+                        <span data-rule="number">○ One number</span>
+                    </div>
+
+                    <div class="auth-form-row">
+                        <button id="forgotPasswordButton" class="text-action auth-link" type="button">Forgot password?</button>
+                    </div>
+
+                    <button id="submitAuthButton" class="button full-button auth-primary" type="submit">Sign in</button>
+                </form>
+
+                <button id="continueGuest" class="guest-button" type="button">Continue without an account</button>
+            </div>
+
+            <div id="forgotView" class="hidden">
+                <div class="auth-icon-large">✉️</div>
+                <h2>Reset your password</h2>
+                <p class="section-copy">Enter your email and we’ll send a secure reset link.</p>
+
+                <label class="auth-field">
+                    <span>Email</span>
+                    <input id="resetEmailInput" type="email" autocomplete="email" placeholder="you@example.com">
+                </label>
+
+                <button id="sendResetButton" class="button full-button auth-primary" type="button">Send reset link</button>
+                <button id="backToSignIn" class="guest-button" type="button">Back to sign in</button>
+            </div>
+
+            <div id="newPasswordView" class="hidden">
+                <div class="auth-icon-large">🔐</div>
+                <h2>Create a new password</h2>
+                <p class="section-copy">Choose a new password for this account.</p>
+
+                <label class="auth-field">
+                    <span>New password</span>
+                    <div class="password-wrap">
+                        <input id="newPasswordInput" type="password" autocomplete="new-password" placeholder="Create a new password">
+                        <button id="toggleNewPassword" class="password-toggle" type="button">Show</button>
+                    </div>
+                </label>
+
+                <label class="auth-field">
+                    <span>Confirm new password</span>
+                    <input id="newPasswordConfirmInput" type="password" autocomplete="new-password" placeholder="Type it again">
+                </label>
+
+                <div id="newPasswordRules" class="password-rules">
+                    <span data-rule="length">○ At least 8 characters</span>
+                    <span data-rule="upper">○ One uppercase letter</span>
+                    <span data-rule="lower">○ One lowercase letter</span>
+                    <span data-rule="number">○ One number</span>
+                </div>
+
+                <button id="saveNewPasswordButton" class="button full-button auth-primary" type="button">Save new password</button>
+            </div>
+
+            <div id="signedInView" class="hidden">
+                <div class="profile-orb" id="profileInitial">AI</div>
+                <div class="eyebrow">Signed in</div>
+                <h2 id="profileTitle">Welcome</h2>
+                <p id="profileEmail" class="section-copy"></p>
+
+                <div class="account-actions">
+                    <a href="index.html" class="button auth-primary">Continue learning →</a>
+                    <button id="signOutButton" type="button" class="button secondary">Sign out</button>
+                </div>
+            </div>
+
+            <div id="authMessage" class="auth-message hidden" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="auth-trust-row">
+            <div><span>🔐</span><strong>No raw passwords</strong><small>Passwords are handled by the auth provider.</small></div>
+            <div><span>🛡️</span><strong>Secure sessions</strong><small>Sessions use standard authentication tokens.</small></div>
+            <div><span>🎓</span><strong>Guest mode stays</strong><small>You can still explore without creating an account.</small></div>
+        </section>
+
+        <footer class="site-footer">
+            <a href="index.html">Learning path</a>
+            <a href="privacy.html">Privacy & Data Use</a>
+        </footer>
+    </main>
+</body>
+</html>
