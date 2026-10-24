@@ -55,52 +55,77 @@ function render() {
 
 function renderSchedule() {
     workspace.innerHTML = `
-        <div class="eyebrow">Tool 1 · Schedule</div>
-        <h2 class="section-title">Give the assistant a real day</h2>
-        <p class="section-copy">Start instantly with a sample, import an <code>.ics</code> calendar file, or enter an event yourself.</p>
+        <div class="eyebrow">Just choose</div>
+        <h2 class="section-title">Pick a day</h2>
+        <p class="section-copy">Choose one ready-made day. Smart Ready will create the schedule automatically.</p>
 
-        <div class="choice-stack">
-            <button id="sampleDay" class="big-choice" type="button">
-                <span>⚡</span>
-                <div><strong>Try a sample day</strong><small>Fastest way to see how connected AI works.</small></div>
+        <div class="choice-stack easy-choice-stack">
+            <button class="big-choice" type="button" data-sample-day="work">
+                <span>💼</span>
+                <div><strong>Work + swimming</strong><small>9:00 Work · 5:30 Swimming</small></div>
             </button>
 
-            <button id="importCalendar" class="big-choice" type="button">
-                <span>📅</span>
-                <div><strong>Import my calendar</strong><small>The .ics file is parsed locally in this browser.</small></div>
+            <button class="big-choice" type="button" data-sample-day="school">
+                <span>🎒</span>
+                <div><strong>School + soccer</strong><small>8:30 School · 4:00 Soccer</small></div>
             </button>
 
-            <button id="manualMode" class="big-choice" type="button">
-                <span>✍️</span>
-                <div><strong>Add events myself</strong><small>No calendar account connection needed.</small></div>
+            <button class="big-choice" type="button" data-sample-day="family">
+                <span>🌳</span>
+                <div><strong>Family park day</strong><small>11:00 Park · 1:00 Picnic</small></div>
             </button>
         </div>
 
-        <input id="icsFile" type="file" accept=".ics,text/calendar" class="hidden">
+        <details class="optional-details">
+            <summary>✨ Use my own schedule (optional)</summary>
+            <div class="optional-body">
+                <button id="importCalendar" class="button secondary full-button" type="button">📅 Import .ics calendar</button>
+                <button id="manualMode" class="button secondary full-button" type="button">✍️ Add events myself</button>
 
-        <div id="manualBox" class="connect-card hidden">
-            <h3>Add an event</h3>
-            <div class="manual-row">
-                <input id="eventDate" type="date" value="${tomorrowIso()}">
-                <input id="eventTime" type="time" value="09:00">
-                <input id="eventTitle" maxlength="60" placeholder="e.g. Work">
-                <button id="addEvent" type="button" class="button secondary">Add</button>
+                <input id="icsFile" type="file" accept=".ics,text/calendar" class="hidden">
+
+                <div id="manualBox" class="connect-card hidden">
+                    <h3>Add an event</h3>
+                    <div class="manual-row">
+                        <input id="eventDate" type="date" value="${tomorrowIso()}">
+                        <input id="eventTime" type="time" value="09:00">
+                        <input id="eventTitle" maxlength="60" placeholder="e.g. Work">
+                        <button id="addEvent" type="button" class="button secondary">Add</button>
+                    </div>
+                    <div id="manualEvents"></div>
+                    <button id="manualWeather" type="button" class="button full-button hidden">Choose weather location →</button>
+                </div>
             </div>
-            <div id="manualEvents"></div>
-            <button id="manualWeather" type="button" class="button full-button hidden">Add weather →</button>
-        </div>
+        </details>
 
-        <div class="privacy-box">🔒 Calendar files stay in this browser. The app does not ask for your calendar password.</div>
+        <div class="privacy-box">🔒 Sample days use no personal calendar data.</div>
     `;
 
-    document.getElementById("sampleDay").addEventListener("click", () => {
-        const date = tomorrowIso();
-        state.dayLabel = "Tomorrow";
-        state.events = [
-            buildManualEvent("Work", date, "09:00"),
-            buildManualEvent("Swimming", date, "17:30")
-        ];
-        setStep(2);
+    workspace.querySelectorAll("[data-sample-day]").forEach(button => {
+        button.addEventListener("click", () => {
+            const date = tomorrowIso();
+            const type = button.dataset.sampleDay;
+
+            if (type === "school") {
+                state.events = [
+                    buildManualEvent("School", date, "08:30"),
+                    buildManualEvent("Soccer", date, "16:00")
+                ];
+            } else if (type === "family") {
+                state.events = [
+                    buildManualEvent("Park", date, "11:00"),
+                    buildManualEvent("Picnic", date, "13:00")
+                ];
+            } else {
+                state.events = [
+                    buildManualEvent("Work", date, "09:00"),
+                    buildManualEvent("Swimming", date, "17:30")
+                ];
+            }
+
+            state.dayLabel = "Tomorrow";
+            setStep(2);
+        });
     });
 
     document.getElementById("importCalendar").addEventListener("click", () => {
@@ -115,7 +140,7 @@ function renderSchedule() {
         const selected = chooseRelevantDay(parsed);
 
         if (!selected.events.length) {
-            showMessage("No usable VEVENT entries were found in that file.");
+            showMessage("No usable events were found in that calendar file.");
             return;
         }
 
@@ -138,7 +163,6 @@ function renderSchedule() {
 
         state.events.push(buildManualEvent(title, date, time));
         state.events.sort((a, b) => a.startMs - b.startMs);
-
         document.getElementById("eventTitle").value = "";
         paintManualEvents();
     };
@@ -296,33 +320,46 @@ function decodeIcsText(value) {
 }
 
 function renderWeather() {
-    workspace.innerHTML = `
-        <div class="eyebrow">Tool 2 · Weather</div>
-        <h2 class="section-title">Match forecast to each event</h2>
-        <p class="section-copy">Type the city for this day. Smart Ready will match the forecast to each event time instead of using only the weather right now.</p>
+    const cities = [
+        ["🇨🇦", "Vancouver"],
+        ["🇨🇦", "Toronto"],
+        ["🇺🇸", "San Francisco"],
+        ["🇬🇧", "London"]
+    ];
 
-        <div class="event-list compact-events">
-            ${state.events.map(event => `
-                <div class="event-row">
-                    <span class="event-time">${escapeHtml(event.displayTime)}</span>
-                    <strong>${escapeHtml(event.title)}</strong>
-                    <small>${escapeHtml(event.timezone || "")}</small>
-                </div>
+    workspace.innerHTML = `
+        <div class="eyebrow">Just choose</div>
+        <h2 class="section-title">Where is this day happening?</h2>
+        <p class="section-copy">Tap a city. Smart Ready automatically gets weather for each event time.</p>
+
+        <div class="choice-stack easy-choice-stack">
+            ${cities.map(([icon, city]) => `
+                <button class="big-choice" type="button" data-city="${city}">
+                    <span>${icon}</span>
+                    <div><strong>${city}</strong><small>Tap once → match forecast to events</small></div>
+                </button>
             `).join("")}
         </div>
 
-        <div class="city-row">
-            <input id="cityInput" maxlength="80" placeholder="City, e.g. Vancouver" value="${escapeHtml(state.city)}">
-            <button id="weatherButton" type="button" class="button teal">Get forecasts</button>
-        </div>
+        <details class="optional-details">
+            <summary>✨ Another city (optional)</summary>
+            <div class="optional-body">
+                <div class="city-row">
+                    <input id="cityInput" maxlength="80" placeholder="Type another city" value="${escapeHtml(state.city)}">
+                    <button id="weatherButton" type="button" class="button teal">Use city</button>
+                </div>
+            </div>
+        </details>
 
-        <div class="privacy-box">🌐 Only the city search and weather request go to Open-Meteo. Precise browser GPS is not requested.</div>
-
-        <button id="skipWeather" type="button" class="text-action">Continue without weather</button>
+        <button id="skipWeather" type="button" class="text-action">Skip weather</button>
         <div id="weatherResult"></div>
     `;
 
-    document.getElementById("weatherButton").addEventListener("click", fetchWeatherForEvents);
+    workspace.querySelectorAll("[data-city]").forEach(button => {
+        button.addEventListener("click", () => fetchWeatherForEvents(button.dataset.city));
+    });
+
+    document.getElementById("weatherButton").addEventListener("click", () => fetchWeatherForEvents());
     document.getElementById("cityInput").addEventListener("keydown", event => {
         if (event.key === "Enter") fetchWeatherForEvents();
     });
@@ -333,19 +370,22 @@ function renderWeather() {
     });
 }
 
-async function fetchWeatherForEvents() {
+async function fetchWeatherForEvents(cityOverride = "") {
     const input = document.getElementById("cityInput");
     const button = document.getElementById("weatherButton");
-    const city = input.value.trim();
+    const city = cityOverride || input?.value.trim() || "";
 
     if (!city) {
-        input.focus();
+        input?.focus();
         return;
     }
 
     state.city = city;
-    button.disabled = true;
-    button.textContent = "Matching forecasts…";
+
+    if (button && !cityOverride) {
+        button.disabled = true;
+        button.textContent = "Matching forecasts…";
+    }
 
     try {
         const geoResponse = await fetch(
@@ -411,9 +451,11 @@ async function fetchWeatherForEvents() {
         paintWeatherResults();
         setTimeout(() => setStep(3), 850);
     } catch {
-        button.disabled = false;
-        button.textContent = "Try again";
-        showMessage("Forecast could not be loaded. Try another city or continue without weather.");
+        if (button) {
+            button.disabled = false;
+            button.textContent = "Try again";
+        }
+        showMessage("Forecast could not be loaded. Choose another city or skip weather.");
     }
 }
 
