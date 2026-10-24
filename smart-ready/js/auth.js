@@ -158,7 +158,9 @@ async function handleEmailAuth(event) {
                 email,
                 password,
                 options: {
-                    emailRedirectTo: AUTH_CONFIG.webAuthUrl + "?mode=verified"
+                    emailRedirectTo: isNative
+                        ? AUTH_CONFIG.nativeRedirectUrl + "?mode=verified"
+                        : AUTH_CONFIG.webAuthUrl + "?mode=verified"
                 }
             });
 
@@ -228,7 +230,9 @@ async function sendReset() {
     elements.sendReset.textContent = "Sending…";
 
     try {
-        const redirectTo = AUTH_CONFIG.webAuthUrl + "?mode=reset";
+        const redirectTo = isNative
+            ? AUTH_CONFIG.nativeRedirectUrl + "?mode=reset"
+            : AUTH_CONFIG.webAuthUrl + "?mode=reset";
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
         if (error) throw error;
 
