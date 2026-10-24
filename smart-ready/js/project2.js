@@ -49,26 +49,37 @@ function render() {
 }
 
 function renderPlan() {
+    const examples = [
+        ["💼", "Work + swimming", "Tomorrow I'm going to work and then swimming."],
+        ["✈️", "3-day trip", "I'm flying for 3 days with only a carry-on."],
+        ["🏖️", "Family beach", "We're going to the beach with the family for the afternoon."],
+        ["⚽", "School + soccer", "I have school in the morning and soccer practice after school."]
+    ];
+
     workspace.innerHTML = `
-        <div class="eyebrow">Give AI a real goal</div>
-        <h2 class="section-title">What are you doing?</h2>
-        <p class="section-copy">Write one normal sentence or tap an example. Example choices move forward immediately.</p>
+        <div class="eyebrow">Just choose</div>
+        <h2 class="section-title">What kind of day should AI plan?</h2>
+        <p class="section-copy">Tap one card. You do not need to write a prompt yourself — Smart Ready builds it for you.</p>
 
-        <textarea id="planInput" class="plan-input" placeholder="Tomorrow I'm going to work and then swimming.">${escapeHtml(state.plan)}</textarea>
-
-        <div class="example-row">
-            <button class="example-chip" data-example="Tomorrow I'm going to work and then swimming.">💼 Work + swimming</button>
-            <button class="example-chip" data-example="I'm flying for 3 days with only a carry-on.">✈️ 3-day trip</button>
-            <button class="example-chip" data-example="We're going to the beach with the family for the afternoon.">🏖️ Family beach</button>
-            <button class="example-chip" data-example="I have school in the morning and soccer practice after school.">⚽ School + soccer</button>
+        <div class="choice-stack easy-choice-stack">
+            ${examples.map(([icon, title, prompt]) => `
+                <button class="big-choice" type="button" data-example="${escapeHtml(prompt)}">
+                    <span>${icon}</span>
+                    <div><strong>${title}</strong><small>Tap once → AI starts planning</small></div>
+                </button>
+            `).join("")}
         </div>
 
-        <button id="generatePlan" type="button" class="button full-button">Build my checklist →</button>
+        <details class="optional-details">
+            <summary>✨ Custom plan (optional)</summary>
+            <div class="optional-body">
+                <textarea id="planInput" class="plan-input" placeholder="Tomorrow I'm going to work and then swimming.">${escapeHtml(state.plan)}</textarea>
+                <button id="generatePlan" type="button" class="button full-button">Use my plan →</button>
+            </div>
+        </details>
 
-        <div class="concept-note"><strong>Prompt</strong> = the instruction and useful context you give an LLM.</div>
+        <div class="concept-note"><strong>Prompt</strong> = the instruction and useful context you give an LLM. Here the app builds the prompt from your choice.</div>
     `;
-
-    const input = document.getElementById("planInput");
 
     workspace.querySelectorAll("[data-example]").forEach(button => {
         button.addEventListener("click", () => {
@@ -79,6 +90,7 @@ function renderPlan() {
     });
 
     document.getElementById("generatePlan").addEventListener("click", () => {
+        const input = document.getElementById("planInput");
         const value = input.value.trim();
         if (!value) {
             input.focus();
