@@ -1,4 +1,4 @@
-const PHOTO_COUNT = 5;
+const PHOTO_COUNT = 3;
 const DEFAULT_THRESHOLD = 0.70;
 const CHECKLIST_KEY = "smartReadyActiveChecklist";
 const MODEL_KEY = "smartReadyVisionModel";
@@ -8,11 +8,9 @@ const DRAFT_STORE = "drafts";
 const DRAFT_KEY = "build1";
 
 const PHOTO_GUIDES = [
-    { title: "Front", icon: "⬆️", text: "Show the whole object straight from the front." },
-    { title: "Left angle", icon: "↖️", text: "Turn it about 45° left." },
-    { title: "Right angle", icon: "↗️", text: "Turn it about 45° right." },
-    { title: "Top / close", icon: "🔎", text: "Move a little closer or slightly above." },
-    { title: "New background", icon: "🌈", text: "Change the background or distance." }
+    { title: "Front", icon: "⬆️", text: "Show the whole object from the front." },
+    { title: "Side", icon: "↗️", text: "Turn the object a little to the side." },
+    { title: "New background", icon: "🌈", text: "Move it slightly or change the background." }
 ];
 
 const BAG_OPTIONS = [
@@ -273,8 +271,8 @@ function renderBag() {
         <p class="section-copy">Choose a scenario. Smart Ready will start with 3 useful object classes.</p>
 
         <div class="time-card">
-            <strong>About 5 minutes</strong>
-            <span>3 objects × 5 photos = 15 training examples</span>
+            <strong>About 3 minutes</strong>
+            <span>3 objects × 3 photos = 9 training examples</span>
         </div>
 
         <div class="choices">
@@ -387,7 +385,7 @@ function renderCollect() {
         <div class="class-tabs">
             ${state.items.map((name, index) => `
                 <button type="button" class="class-tab ${index === state.selectedClassIndex ? "active" : ""}" data-class="${index}">
-                    ${escapeHtml(name)} ${state.photos[name]?.length || 0}/5
+                    ${escapeHtml(name)} ${state.photos[name]?.length || 0}/3
                 </button>
             `).join("")}
         </div>
@@ -402,7 +400,7 @@ function renderCollect() {
             <div class="pose-card">
                 <div class="pose-icon">${guide.icon}</div>
                 <div>
-                    <strong>${escapeHtml(item)} · photo ${Math.min(photos.length + 1, 5)}/5 · ${guide.title}</strong>
+                    <strong>${escapeHtml(item)} · photo ${Math.min(photos.length + 1, 5)}/3 · ${guide.title}</strong>
                     <span>${guide.text}</span>
                 </div>
             </div>
@@ -423,13 +421,13 @@ function renderCollect() {
                     <div class="dataset-row">
                         <div>
                             <strong>${escapeHtml(name)}</strong>
-                            <div class="dataset-bar"><span style="width:${count * 20}%"></span></div>
+                            <div class="dataset-bar"><span style="width:${Math.round((count / PHOTO_COUNT) * 100)}%"></span></div>
                         </div>
-                        <strong>${count}/5</strong>
+                        <strong>${count}/3</strong>
                     </div>
                 `;
             }).join("")}
-            <div class="dataset-total">${totalPhotos()} / 15 examples · Saved on this device ✓</div>
+            <div class="dataset-total">${totalPhotos()} / ${state.items.length * PHOTO_COUNT} examples · Saved on this device ✓</div>
         </div>
 
         <div class="photo-grid" id="photoGrid"></div>
