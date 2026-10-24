@@ -64,21 +64,23 @@ function render() {
 
         <div class="section-divider"></div>
 
-        <div class="eyebrow">Part 2 · Retrieval + RAG</div>
-        <h2 class="section-title">Let the agent use a document without guessing</h2>
-        <p class="section-copy">Use the sample document or a local TXT, MD or PDF file. Then compare keyword search with semantic retrieval.</p>
+        <div class="eyebrow">Part 2 · Just choose</div>
+        <h2 class="section-title">Use a document without guessing</h2>
+        <p class="section-copy">For the easy path, tap the ready-made document. You can upload your own only if you want to.</p>
 
-        <div class="choice-stack">
+        <div class="choice-stack easy-choice-stack">
             <button id="sampleDoc" class="big-choice colorful-choice" type="button">
                 <span>📄</span>
-                <div><strong>Use sample field-trip document</strong><small>Includes a wording challenge for semantic search.</small></div>
-            </button>
-
-            <button id="uploadDoc" class="big-choice colorful-choice" type="button">
-                <span>📁</span>
-                <div><strong>Use my document</strong><small>TXT, MD or PDF · processed locally</small></div>
+                <div><strong>Use the sample field-trip document</strong><small>Recommended · one tap</small></div>
             </button>
         </div>
+
+        <details class="optional-details">
+            <summary>✨ My own document (optional)</summary>
+            <div class="optional-body">
+                <button id="uploadDoc" class="button secondary full-button" type="button">📁 Upload TXT, MD or PDF</button>
+            </div>
+        </details>
 
         <input id="documentFile" type="file" accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf" class="hidden">
         <div id="ragArea"></div>
@@ -182,17 +184,39 @@ function loadDocument(name, text) {
             </div>
         </div>
 
-        <div class="query-row">
-            <input id="ragQuery" placeholder="Ask the document something">
-            <button id="askDoc" class="button" type="button">Ask</button>
+        <div class="eyebrow choice-eyebrow">Now choose a question</div>
+
+        <div class="choice-stack easy-choice-stack">
+            <button class="big-choice" data-query="What should I bring for the field trip?">
+                <span>🎒</span>
+                <div><strong>What should I bring?</strong><small>Simple retrieval question</small></div>
+            </button>
+
+            <button class="big-choice" data-query="Do I need a rain jacket?">
+                <span>🌧️</span>
+                <div><strong>Do I need a rain jacket?</strong><small>Shows why semantic retrieval helps</small></div>
+            </button>
+
+            <button class="big-choice" data-query="What time does the bus return?">
+                <span>🚌</span>
+                <div><strong>What time does the bus return?</strong><small>Find an exact fact</small></div>
+            </button>
+
+            <button class="big-choice" data-query="What color is the bus?">
+                <span>❓</span>
+                <div><strong>Ask something the document does not know</strong><small>Learn why “I don't know” matters</small></div>
+            </button>
         </div>
 
-        <div class="example-row">
-            <button class="example-chip" data-query="What should I bring for the field trip?">What should I bring?</button>
-            <button class="example-chip" data-query="Do I need a rain jacket?">🌧 Do I need a rain jacket?</button>
-            <button class="example-chip" data-query="What time does the bus return?">What time is the return?</button>
-            <button class="example-chip" data-query="What color is the bus?">Ask something missing</button>
-        </div>
+        <details class="optional-details">
+            <summary>✨ Ask my own question (optional)</summary>
+            <div class="optional-body">
+                <div class="query-row">
+                    <input id="ragQuery" placeholder="Type your own question">
+                    <button id="askDoc" class="button" type="button">Ask</button>
+                </div>
+            </div>
+        </details>
 
         <div id="ragResult"></div>
     `;
