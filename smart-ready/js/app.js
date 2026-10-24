@@ -22,6 +22,85 @@ const BAG_OPTIONS = [
     ["custom", "Custom", "✨", []]
 ];
 
+const SAMPLE_ICONS = {
+    "Notebook": "📓",
+    "Water Bottle": "🥤",
+    "Pencil Case": "✏️",
+    "Laptop": "💻",
+    "Charger": "🔌",
+    "Headphones": "🎧",
+    "Gym Shoes": "👟",
+    "Towel": "🧣",
+    "Passport": "📕",
+    "Snacks": "🍎",
+    "Wipes": "🧻",
+    "Extra Clothes": "👕",
+    "Banana": "🍌",
+    "Keys": "🔑",
+    "Coffee Mug": "☕",
+    "Book": "📚"
+};
+
+const SAMPLE_BACKGROUNDS = [
+    ["#fff3f8", "#ffdce9", "#ff96bf"],
+    ["#eef4ff", "#dbe8ff", "#7ca8ff"],
+    ["#eefcf7", "#d3f6e9", "#56cfa9"],
+    ["#fff9e8", "#ffe9a8", "#f8c752"],
+    ["#f5efff", "#e4d6ff", "#9d7df5"],
+    ["#eefbff", "#d4f2ff", "#5cc8ef"],
+    ["#fff1ec", "#ffd9cd", "#ff9b76"]
+];
+
+function sampleIcon(item) {
+    return SAMPLE_ICONS[item] || "🔷";
+}
+
+function makeSampleImage(item, variant = 0) {
+    const [bg1, bg2, accent] = SAMPLE_BACKGROUNDS[variant % SAMPLE_BACKGROUNDS.length];
+    const icon = sampleIcon(item);
+    const x = 160 + ((variant % 3) - 1) * 18;
+    const y = 145 + ((variant % 2) * 12);
+    const size = 112 + ((variant % 3) * 8);
+    const tilt = [-8, 6, -3, 9, -6, 4, 0][variant % 7];
+
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">
+            <defs>
+                <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="${bg1}"/>
+                    <stop offset="100%" stop-color="${bg2}"/>
+                </linearGradient>
+                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#45405f" flood-opacity=".16"/>
+                </filter>
+            </defs>
+            <rect width="320" height="240" rx="28" fill="url(#bg)"/>
+            <circle cx="${40 + variant * 13}" cy="40" r="24" fill="${accent}" opacity=".18"/>
+            <circle cx="${278 - variant * 8}" cy="202" r="34" fill="#ffffff" opacity=".55"/>
+            <ellipse cx="160" cy="196" rx="70" ry="16" fill="#4e4b67" opacity=".10"/>
+            <g transform="rotate(${tilt} ${x} ${y})" filter="url(#shadow)">
+                <text x="${x}" y="${y}" text-anchor="middle"
+                    dominant-baseline="middle"
+                    font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif"
+                    font-size="${size}">${icon}</text>
+            </g>
+        </svg>
+    `;
+
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+}
+
+function builtInChoices(item) {
+    return Array.from({ length: 5 }, (_, index) => ({
+        id: item + "-" + index,
+        dataUrl: makeSampleImage(item, index)
+    }));
+}
+
+function chooseUnknownItem() {
+    return ["Banana", "Keys", "Coffee Mug", "Book"].find(item => !state.items.includes(item)) || "Banana";
+}
+
 const state = {
     step: 1,
     bagType: "",
@@ -35,6 +114,9 @@ const state = {
     testCameraStream: null,
     lastResult: null,
     testCount: 0,
+    testedKnown: false,
+    testedUnknown: false,
+    unknownResult: null,
     threshold: DEFAULT_THRESHOLD,
     checkMode: new URLSearchParams(location.search).get("mode") === "check",
     activeChecklist: null
@@ -384,46 +466,43 @@ function allPhotosReady() {
 function renderCollect() {
     const item = state.items[state.selectedClassIndex];
     const photos = state.photos[item] || [];
-    const guide = PHOTO_GUIDES[Math.min(photos.length, PHOTO_COUNT - 1)];
+    const choices = builtInChoices(item);
 
     workspace.innerHTML = `
-        <div class="eyebrow">Training data</div>
-        <h2 class="section-title">Teach with examples</h2>
-        <p class="section-copy">These are <strong>training examples</strong>: images the model is allowed to learn from.</p>
+        <div class="eyebrow">Training data · Just choose</div>
+        <h2 class="section-title">Pick 3 pictures of ${escapeHtml(item)}</h2>
+        <p class="section-copy">Tap any 3 ready-made pictures. These become the examples your model learns from.</p>
 
         <div class="class-tabs">
             ${state.items.map((name, index) => `
                 <button type="button" class="class-tab ${index === state.selectedClassIndex ? "active" : ""}" data-class="${index}">
-                    ${escapeHtml(name)} ${state.photos[name]?.length || 0}/3
+                    ${escapeHtml(name)} ${state.photos[name]?.length || 0}/${PHOTO_COUNT}
                 </button>
             `).join("")}
         </div>
 
-        <div class="camera-stage">
-            <div class="camera-wrap">
-                <video id="trainingVideo" playsinline muted class="hidden"></video>
-                <div id="cameraPlaceholder" class="camera-placeholder">
-                    <div><span class="camera-emoji">📷</span><strong>Camera is off</strong></div>
-                </div>
-            </div>
-            <div class="pose-card">
-                <div class="pose-icon">${guide.icon}</div>
-                <div>
-                    <strong>${escapeHtml(item)} · photo ${Math.min(photos.length + 1, 5)}/3 · ${guide.title}</strong>
-                    <span>${guide.text}</span>
-                </div>
-            </div>
-            <div class="camera-actions">
-                <button id="startCamera" class="button secondary" type="button">Start camera</button>
-                <button id="capturePhoto" class="button teal" type="button" disabled>Capture</button>
-            </div>
+        <div class="sample-gallery">
+            ${choices.map((choice, index) => {
+                const selected = photos.includes(choice.dataUrl);
+                return `
+                    <button type="button"
+                        class="sample-image-card ${selected ? "selected" : ""}"
+                        data-sample-index="${index}"
+                        aria-label="${selected ? "Selected" : "Select"} ${escapeHtml(item)} picture ${index + 1}">
+                        <img src="${choice.dataUrl}" alt="${escapeHtml(item)} sample ${index + 1}">
+                        <span class="sample-check">${selected ? "✓" : "+"}</span>
+                    </button>
+                `;
+            }).join("")}
         </div>
 
-        <input id="uploadPhotos" type="file" accept="image/*" multiple class="hidden">
-        <button id="uploadButton" type="button" class="button secondary full-button">Upload photos instead</button>
+        <div class="selection-status">
+            <strong>${photos.length} / ${PHOTO_COUNT} selected</strong>
+            <span>${photos.length < PHOTO_COUNT ? "Choose " + (PHOTO_COUNT - photos.length) + " more" : "Ready ✓"}</span>
+        </div>
 
-        <div class="dataset-card">
-            <h3>Your dataset</h3>
+        <div class="dataset-card compact-dataset">
+            <h3>Your training set</h3>
             ${state.items.map(name => {
                 const count = state.photos[name]?.length || 0;
                 return `
@@ -432,32 +511,36 @@ function renderCollect() {
                             <strong>${escapeHtml(name)}</strong>
                             <div class="dataset-bar"><span style="width:${Math.round((count / PHOTO_COUNT) * 100)}%"></span></div>
                         </div>
-                        <strong>${count}/3</strong>
+                        <strong>${count}/${PHOTO_COUNT}</strong>
                     </div>
                 `;
             }).join("")}
-            <div class="dataset-total">${totalPhotos()} / ${state.items.length * PHOTO_COUNT} examples · Saved on this device ✓</div>
+            <div class="dataset-total">${totalPhotos()} / ${state.items.length * PHOTO_COUNT} examples</div>
         </div>
 
-        <div class="photo-grid" id="photoGrid"></div>
+        <details class="optional-details">
+            <summary>📷 Take my own photos instead (optional)</summary>
+            <div class="optional-body">
+                <p class="small-note">You can mix your own camera photos with the ready-made pictures.</p>
+
+                <div class="camera-stage compact-camera">
+                    <div class="camera-wrap">
+                        <video id="trainingVideo" playsinline muted class="hidden"></video>
+                        <div id="cameraPlaceholder" class="camera-placeholder">
+                            <div><span class="camera-emoji">📷</span><strong>Camera is off</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="camera-actions">
+                        <button id="startCamera" class="button secondary" type="button">Start camera</button>
+                        <button id="capturePhoto" class="button teal" type="button" disabled>Use this photo</button>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <div class="concept-note"><strong>Training example</strong> = a picture the model is allowed to learn from. You are building the dataset by choosing examples.</div>
     `;
-
-    paintPhotoGrid();
-
-    const video = document.getElementById("trainingVideo");
-    const placeholder = document.getElementById("cameraPlaceholder");
-    const capture = document.getElementById("capturePhoto");
-    const start = document.getElementById("startCamera");
-
-    if (state.cameraStream) {
-        video.srcObject = state.cameraStream;
-        video.classList.remove("hidden");
-        placeholder.classList.add("hidden");
-        capture.disabled = photos.length >= PHOTO_COUNT;
-        start.disabled = true;
-        start.textContent = "Camera on ✓";
-        video.play().catch(() => {});
-    }
 
     workspace.querySelectorAll("[data-class]").forEach(button => {
         button.addEventListener("click", () => {
@@ -466,9 +549,34 @@ function renderCollect() {
         });
     });
 
+    workspace.querySelectorAll("[data-sample-index]").forEach(button => {
+        button.addEventListener("click", () => {
+            const choice = choices[Number(button.dataset.sampleIndex)];
+            const existingIndex = photos.indexOf(choice.dataUrl);
+
+            if (existingIndex >= 0) {
+                photos.splice(existingIndex, 1);
+                saveDraft();
+                renderCollect();
+                return;
+            }
+
+            if (photos.length >= PHOTO_COUNT) return;
+
+            photos.push(choice.dataUrl);
+            moveAfterPhoto(item);
+        });
+    });
+
+    const video = document.getElementById("trainingVideo");
+    const placeholder = document.getElementById("cameraPlaceholder");
+    const capture = document.getElementById("capturePhoto");
+    const start = document.getElementById("startCamera");
+
     start.addEventListener("click", async () => {
         start.disabled = true;
         start.textContent = "Starting…";
+
         try {
             await startCamera(video, "training");
             video.classList.remove("hidden");
@@ -478,7 +586,7 @@ function renderCollect() {
         } catch {
             start.disabled = false;
             start.textContent = "Try camera again";
-            showInlineMessage("Camera did not start. Allow permission or upload photos instead.");
+            showInlineMessage("Camera did not start. You can continue with the ready-made pictures.");
         }
     });
 
@@ -487,18 +595,13 @@ function renderCollect() {
         photos.push(captureFrame(video));
         moveAfterPhoto(item);
     });
-
-    document.getElementById("uploadButton").addEventListener("click", () => document.getElementById("uploadPhotos").click());
-    document.getElementById("uploadPhotos").addEventListener("change", async event => {
-        const files = Array.from(event.target.files || []).slice(0, PHOTO_COUNT - photos.length);
-        for (const file of files) photos.push(await fileToDataUrl(file));
-        moveAfterPhoto(item);
-    });
 }
 
 function moveAfterPhoto(currentItem) {
+    saveDraft();
+
     if (allPhotosReady()) {
-        setTimeout(() => setStep(4), 300);
+        setTimeout(() => setStep(4), 250);
         return;
     }
 
@@ -507,30 +610,7 @@ function moveAfterPhoto(currentItem) {
         if (nextIndex >= 0) state.selectedClassIndex = nextIndex;
     }
 
-    saveDraft();
     renderCollect();
-}
-
-function paintPhotoGrid() {
-    const item = state.items[state.selectedClassIndex];
-    const photos = state.photos[item] || [];
-    const grid = document.getElementById("photoGrid");
-    if (!grid) return;
-
-    grid.innerHTML = Array.from({ length: PHOTO_COUNT }, (_, index) => {
-        const photo = photos[index];
-        return photo
-            ? `<div class="photo-slot"><img src="${photo}" alt="Training photo ${index + 1}"><button type="button" class="remove-photo" data-photo="${index}">×</button></div>`
-            : `<div class="photo-slot empty">${index + 1}</div>`;
-    }).join("");
-
-    grid.querySelectorAll("[data-photo]").forEach(button => {
-        button.addEventListener("click", () => {
-            photos.splice(Number(button.dataset.photo), 1);
-            saveDraft();
-            renderCollect();
-        });
-    });
 }
 
 async function renderTrain() {
@@ -582,28 +662,70 @@ async function renderTrain() {
 }
 
 function renderTest() {
+    const knownItem = state.items[0];
+    const unknownItem = chooseUnknownItem();
+    const knownImage = makeSampleImage(knownItem, 5);
+    const unknownImage = makeSampleImage(unknownItem, 6);
+
     workspace.innerHTML = `
-        <div class="eyebrow">Test data</div>
-        <h2 class="section-title">Show it something new</h2>
-        <p class="section-copy">Now use a view the model did <strong>not</strong> train on. That is test data. After one normal test, try an object it has never seen.</p>
+        <div class="eyebrow">Test data · Just choose</div>
+        <h2 class="section-title">Now test pictures the model did not train on</h2>
+        <p class="section-copy">Tap both cards. One is a new picture of a known class. The other is something the model has never learned.</p>
 
-        <div class="test-tip">
-            <span>1</span> Test one trained object
-            <span>2</span> Then show a completely different object
+        <div class="test-choice-grid">
+            <button id="knownTestCard" class="test-image-card ${state.testedKnown ? "done" : ""}" type="button">
+                <img src="${knownImage}" alt="New ${escapeHtml(knownItem)} test picture">
+                <div>
+                    <span>1 · New view</span>
+                    <strong>${escapeHtml(knownItem)}</strong>
+                    <small>${state.testedKnown ? "Tested ✓" : "Tap to test"}</small>
+                </div>
+            </button>
+
+            <button id="unknownTestCard" class="test-image-card ${state.testedUnknown ? "done" : ""}" type="button">
+                <img src="${unknownImage}" alt="Unknown ${escapeHtml(unknownItem)} test picture">
+                <div>
+                    <span>2 · Unknown object</span>
+                    <strong>${escapeHtml(unknownItem)}</strong>
+                    <small>${state.testedUnknown ? "Tested ✓" : "Tap to test"}</small>
+                </div>
+            </button>
         </div>
 
-        <div class="result-card">
-            <video id="testVideo" playsinline muted></video>
-            <div id="prediction" class="prediction-area">Start the camera to test.</div>
-        </div>
+        <div id="prediction" class="prediction-area test-prediction">Choose a picture above.</div>
 
-        <div class="camera-actions standalone-actions">
-            <button id="startTestCamera" class="button secondary" type="button">Start camera</button>
-            <button id="testNow" class="button teal" type="button" disabled>Test this view</button>
-        </div>
+        <details class="optional-details">
+            <summary>📷 Try a real object with my camera (optional)</summary>
+            <div class="optional-body">
+                <div class="result-card">
+                    <video id="testVideo" playsinline muted></video>
+                </div>
+                <div class="camera-actions standalone-actions">
+                    <button id="startTestCamera" class="button secondary" type="button">Start camera</button>
+                    <button id="testNow" class="button teal" type="button" disabled>Test camera view</button>
+                </div>
+                <div id="cameraPrediction" class="prediction-area"></div>
+            </div>
+        </details>
 
-        <div class="concept-note"><strong>Prediction</strong> = the model's best guess. <strong>Confidence</strong> = how strongly this input matches what it learned.</div>
+        <div class="concept-note"><strong>Test data</strong> = new input the model did not train on. A good test tells you whether the model learned a useful pattern instead of simply remembering examples.</div>
     `;
+
+    document.getElementById("knownTestCard").addEventListener("click", async () => {
+        const prediction = await predictDataUrl(knownImage);
+        state.testedKnown = true;
+        showSamplePrediction(prediction, "This is a new picture of a class the model learned.");
+        checkTestComplete();
+    });
+
+    document.getElementById("unknownTestCard").addEventListener("click", async () => {
+        const prediction = await predictDataUrl(unknownImage);
+        state.testedUnknown = true;
+        state.unknownResult = prediction;
+        state.lastResult = prediction;
+        showSamplePrediction(prediction, "The model has never learned this object, but a closed-set classifier still tries to choose a known class.");
+        checkTestComplete();
+    });
 
     const video = document.getElementById("testVideo");
     const start = document.getElementById("startTestCamera");
@@ -612,6 +734,7 @@ function renderTest() {
     start.addEventListener("click", async () => {
         start.disabled = true;
         start.textContent = "Starting…";
+
         try {
             await startCamera(video, "test");
             test.disabled = false;
@@ -619,7 +742,7 @@ function renderTest() {
         } catch {
             start.disabled = false;
             start.textContent = "Try camera again";
-            showInlineMessage("Camera permission was not available.");
+            showInlineMessage("Camera permission was not available. The ready-made test pictures are enough to finish the lesson.");
         }
     });
 
@@ -628,20 +751,45 @@ function renderTest() {
         const prediction = await state.classifier.predictClass(activation);
         activation.dispose();
 
-        state.lastResult = prediction;
-        state.testCount += 1;
-
         const confidence = Math.round(Number(prediction.confidences[prediction.label] || 0) * 100);
-        document.getElementById("prediction").innerHTML = `
+        document.getElementById("cameraPrediction").innerHTML = `
             <strong>${escapeHtml(prediction.label)}</strong>
             <span>${confidence}% confidence</span>
-            <small>${state.testCount === 1 ? "Now try an object the model has never seen." : "Notice: a closed-set classifier still chooses one of the classes it knows."}</small>
+            <small>Real camera input is harder than the built-in demo pictures — that is a useful experiment.</small>
         `;
-
-        if (state.testCount >= 2) {
-            setTimeout(() => setStep(6), 950);
-        }
     });
+}
+
+async function predictDataUrl(dataUrl) {
+    const image = await imageFromDataUrl(dataUrl);
+    const activation = state.model.infer(image, true);
+    const prediction = await state.classifier.predictClass(activation);
+    activation.dispose();
+    return prediction;
+}
+
+function showSamplePrediction(prediction, note) {
+    const confidence = Math.round(Number(prediction.confidences[prediction.label] || 0) * 100);
+    state.lastResult = prediction;
+    state.testCount += 1;
+
+    document.getElementById("prediction").innerHTML = `
+        <strong>${escapeHtml(prediction.label)}</strong>
+        <span>${confidence}% confidence</span>
+        <small>${escapeHtml(note)}</small>
+    `;
+
+    document.getElementById("knownTestCard").classList.toggle("done", state.testedKnown);
+    document.getElementById("unknownTestCard").classList.toggle("done", state.testedUnknown);
+    document.querySelector("#knownTestCard small").textContent = state.testedKnown ? "Tested ✓" : "Tap to test";
+    document.querySelector("#unknownTestCard small").textContent = state.testedUnknown ? "Tested ✓" : "Tap to test";
+}
+
+function checkTestComplete() {
+    if (!state.testedKnown || !state.testedUnknown) return;
+
+    if (state.unknownResult) state.lastResult = state.unknownResult;
+    setTimeout(() => setStep(6), 1050);
 }
 
 function renderThresholdLab() {
