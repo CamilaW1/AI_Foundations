@@ -1,5 +1,5 @@
 name: Build Smart Ready Android APK
-# package revision 5
+# package revision 6
 
 on:
   workflow_dispatch:
