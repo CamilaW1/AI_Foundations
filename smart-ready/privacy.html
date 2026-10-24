@@ -11,7 +11,7 @@
 
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/style.css?v=41">
+    <link rel="stylesheet" href="css/style.css?v=50">
     <link rel="stylesheet" href="css/privacy.css?v=3">
 </head>
 <body>
@@ -31,7 +31,7 @@
 
             <div class="privacy-badges">
                 <span>No paid cloud LLM</span>
-                <span>No app account required</span>
+                <span>Account optional</span>
                 <span>No first-party ads/analytics</span>
             </div>
         </section>
@@ -45,7 +45,7 @@
                 <div><strong>📅 Calendar files</strong><p>Imported .ics files are parsed locally.</p></div>
                 <div><strong>📄 Documents</strong><p>TXT, MD and supported PDF files are processed locally for retrieval.</p></div>
                 <div><strong>🌦 Weather</strong><p>Typed city + forecast request go to Open-Meteo.</p></div>
-                <div><strong>💾 Progress</strong><p>Learning progress, memory and small model/checklist data can be stored in browser storage.</p></div>
+                <div><strong>👤 Account</strong><p>Optional sign-in can use email/password or enabled social providers.</p></div>\n                <div><strong>💾 Progress</strong><p>Learning progress, memory and small model/checklist data can be stored in browser storage.</p></div>
             </div>
         </section>
 
@@ -66,6 +66,8 @@
             <div class="privacy-details-body">
                 <p><strong>Open-Meteo:</strong> Build 3 sends the city search and latitude/longitude weather request needed for forecast data. Precise browser GPS is not requested.</p>
                 <p><strong>Libraries and model files:</strong> JavaScript libraries, WebLLM/model files, TensorFlow.js assets and PDF.js can be downloaded from their hosting/CDN providers. Those providers may receive normal technical request data such as IP address, browser details and request time.</p>
+                <p><strong>Authentication:</strong> when the account feature is connected, Supabase Auth processes account identifiers, secure sessions, email verification and password-reset flows. AI Builder does not store raw passwords in its own code or localStorage.</p>
+                <p><strong>Social sign-in:</strong> Google, Facebook and GitHub sign-in use those providers' OAuth systems when enabled. Each provider receives the normal information needed to complete sign-in and applies its own privacy terms.</p>
                 <p><strong>Hosting:</strong> the current site is served by GitHub Pages, which may process standard request/security logs under GitHub's own policies.</p>
             </div>
         </details>
@@ -110,7 +112,7 @@
                 <div><strong>TensorFlow.js / MobileNet / KNN</strong><span>Browser vision</span></div>
                 <div><strong>WebLLM / SmolLM2</strong><span>Local browser LLM</span></div>
                 <div><strong>Open-Meteo</strong><span>City search and weather forecast</span></div>
-                <div><strong>PDF.js</strong><span>Local PDF text extraction in Build 5</span></div>\n                <div><strong>Universal Sentence Encoder</strong><span>Local semantic embeddings for document retrieval</span></div>
+                <div><strong>PDF.js</strong><span>Local PDF text extraction in Build 5</span></div>\n                <div><strong>Universal Sentence Encoder</strong><span>Local semantic embeddings for document retrieval</span></div>\n                <div><strong>Supabase Auth</strong><span>Optional email/password and social account authentication</span></div>
             </div>
             <p class="small-legal">Third-party services have their own terms and privacy practices. Open-Meteo's free API is used for this non-commercial educational prototype; commercial use should be reviewed separately.</p>
         </section>
@@ -122,7 +124,7 @@
         </section>
 
         <section class="main-card privacy-update">
-            <strong>Last updated: October 19, 2026</strong>
+            <strong>Last updated: October 24, 2026</strong>
             <p>Update this notice whenever Smart Ready adds a new external service, account connection, analytics tool, cloud AI model or new type of stored data.</p>
         </section>
 
