@@ -265,10 +265,12 @@ function render() {
 }
 
 function renderBag() {
+    const readyOptions = BAG_OPTIONS.filter(option => option[0] !== "custom");
+
     workspace.innerHTML = `
-        <div class="eyebrow">Start with a real use case</div>
+        <div class="eyebrow">Just choose</div>
         <h2 class="section-title">What should your first vision model recognize?</h2>
-        <p class="section-copy">Choose a scenario. Smart Ready will start with 3 useful object classes.</p>
+        <p class="section-copy">Tap one ready-made scenario. The 3 object classes are chosen for you automatically.</p>
 
         <div class="time-card">
             <strong>About 3 minutes</strong>
@@ -276,14 +278,21 @@ function renderBag() {
         </div>
 
         <div class="choices">
-            ${BAG_OPTIONS.map(option => `
+            ${readyOptions.map(option => `
                 <button type="button" class="choice" data-bag="${option[0]}">
                     <span class="emoji">${option[2]}</span>
                     <strong>${option[1]}</strong>
-                    <small>${option[0] === "custom" ? "Choose your own 3 objects" : option[3].join(" · ")}</small>
+                    <small>${option[3].join(" · ")}</small>
                 </button>
             `).join("")}
         </div>
+
+        <details class="optional-details">
+            <summary>✨ Choose my own objects (optional)</summary>
+            <div class="optional-body">
+                <button id="customBag" type="button" class="button secondary full-button">Create custom model</button>
+            </div>
+        </details>
 
         <div class="concept-note"><strong>Class</strong> = one category the model learns to recognize.</div>
     `;
@@ -293,17 +302,17 @@ function renderBag() {
             const option = BAG_OPTIONS.find(item => item[0] === button.dataset.bag);
             state.bagType = option[0];
             state.items = [...option[3]];
-
-            if (state.bagType === "custom") {
-                setStep(2);
-                return;
-            }
-
             state.photos = Object.fromEntries(state.items.map(item => [item, []]));
             state.selectedClassIndex = 0;
             saveDraft();
             setStep(3);
         });
+    });
+
+    document.getElementById("customBag").addEventListener("click", () => {
+        state.bagType = "custom";
+        state.items = [];
+        setStep(2);
     });
 }
 
@@ -648,9 +657,9 @@ function renderThresholdLab() {
     const confidencePct = Math.round(confidence * 100);
 
     workspace.innerHTML = `
-        <div class="eyebrow">Make AI less overconfident</div>
-        <h2 class="section-title">When should it say “Not sure”?</h2>
-        <p class="section-copy">Your classifier always tries to choose one of the classes it knows—even for an unfamiliar object. Add a confidence threshold.</p>
+        <div class="eyebrow">Just choose</div>
+        <h2 class="section-title">When should AI say “Not sure”?</h2>
+        <p class="section-copy">Choose a confidence threshold. The app changes immediately — no Confirm button.</p>
 
         <div class="threshold-lab">
             <div class="threshold-result">
@@ -659,8 +668,17 @@ function renderThresholdLab() {
                 <small>${confidencePct}% confidence</small>
             </div>
 
-            <label for="thresholdSlider">Confidence threshold: <strong id="thresholdValue">${Math.round(state.threshold * 100)}%</strong></label>
-            <input id="thresholdSlider" type="range" min="40" max="95" value="${Math.round(state.threshold * 100)}">
+            <div class="threshold-choice-grid">
+                <button type="button" class="threshold-choice" data-threshold="0.60">
+                    <strong>60%</strong><small>More confident guesses allowed</small>
+                </button>
+                <button type="button" class="threshold-choice recommended" data-threshold="0.70">
+                    <strong>70%</strong><small>Recommended for this lesson</small>
+                </button>
+                <button type="button" class="threshold-choice" data-threshold="0.80">
+                    <strong>80%</strong><small>Say “Not sure” more often</small>
+                </button>
+            </div>
 
             <div id="finalDecision" class="decision-card"></div>
         </div>
@@ -668,12 +686,12 @@ function renderThresholdLab() {
         <pre id="thresholdCode" class="code-box"></pre>
 
         ${confidence >= 0.95 ? `
-            <div class="warning-box"><strong>Your simple KNN model is very confident.</strong> Unknown objects can still get 100% confidence when all nearest examples belong to one known class. This is a real limitation: confidence alone is not perfect out-of-distribution detection.</div>
+            <div class="warning-box"><strong>Notice:</strong> an unknown object can still get a very high score. Confidence is not the same as “probability AI is correct.”</div>
         ` : ""}
 
         <div class="learned-card">
-            <strong>You just learned</strong>
-            <p>Training data ≠ test data. A prediction can be wrong. A confidence score is <strong>not</strong> the same as “probability the answer is correct.” Thresholds help, but simple models can still be overconfident on unfamiliar input.</p>
+            <strong>What changed?</strong>
+            <p>The threshold tells the app when to trust a prediction and when to say “Not sure.” A confidence score is useful, but it is not a guarantee.</p>
         </div>
 
         <div id="nextBuild" class="next-build-card hidden">
@@ -683,15 +701,16 @@ function renderThresholdLab() {
         </div>
     `;
 
-    const slider = document.getElementById("thresholdSlider");
+    const update = threshold => {
+        state.threshold = Number(threshold);
 
-    const update = () => {
-        state.threshold = Number(slider.value) / 100;
-        document.getElementById("thresholdValue").textContent = slider.value + "%";
+        workspace.querySelectorAll("[data-threshold]").forEach(button => {
+            button.classList.toggle("selected", Number(button.dataset.threshold) === state.threshold);
+        });
 
         const uncertain = confidence < state.threshold;
         document.getElementById("finalDecision").innerHTML = uncertain
-            ? `<span>Final app decision</span><strong>Not sure</strong><small>The model was below your threshold.</small>`
+            ? `<span>Final app decision</span><strong>Not sure</strong><small>The model is below your threshold.</small>`
             : `<span>Final app decision</span><strong>${escapeHtml(result.label)}</strong><small>The model is above your threshold.</small>`;
 
         document.getElementById("thresholdCode").textContent =
@@ -700,12 +719,14 @@ function renderThresholdLab() {
         serializeClassifier();
     };
 
-    update();
+    update(state.threshold);
 
-    slider.addEventListener("input", () => {
-        update();
-        markComplete(1);
-        document.getElementById("nextBuild").classList.remove("hidden");
+    workspace.querySelectorAll("[data-threshold]").forEach(button => {
+        button.addEventListener("click", () => {
+            update(button.dataset.threshold);
+            markComplete(1);
+            document.getElementById("nextBuild").classList.remove("hidden");
+        });
     });
 }
 
