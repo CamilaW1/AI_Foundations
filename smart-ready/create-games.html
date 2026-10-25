@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#17122f">
+    <title>Create Games Lab — AI Builder</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="css/style.css?v=80">
+    <link rel="stylesheet" href="css/create-games.css?v=1">
+    <script src="js/create-games.js?v=1" defer></script>
+    <script src="js/pwa.js?v=4" defer></script>
+</head>
+<body class="games-lab-body">
+    <main class="games-lab-shell">
+        <header class="games-topbar">
+            <a class="games-back" href="index.html" aria-label="Back to AI Builder">←</a>
+            <div>
+                <span class="games-kicker">IRIS CREATOR</span>
+                <strong>Create Games Lab</strong>
+            </div>
+            <span class="lab-badge">BETA</span>
+        </header>
+
+        <section id="creatorView" class="creator-view">
+            <div class="creator-hero">
+                <div class="iris-orb" aria-hidden="true"><span>✦</span></div>
+                <div class="creator-copy">
+                    <span class="games-kicker">DESCRIBE IT · PLAY IT · BEAT THE AI</span>
+                    <h1>What game do you want to play against AI?</h1>
+                    <p>Type one sentence or tap an idea. Iris turns it into a playable game.</p>
+                </div>
+            </div>
+
+            <form id="gamePromptForm" class="game-prompt-card">
+                <label for="gamePrompt">Your game idea</label>
+                <textarea id="gamePrompt" rows="3" maxlength="240" placeholder="Example: Make a game where AI and I choose the best gear for a storm on Iris."></textarea>
+                <div class="prompt-actions">
+                    <span id="promptHint">One sentence is enough.</span>
+                    <button id="generateGameButton" class="generate-game-button" type="submit">✨ Generate Game</button>
+                </div>
+            </form>
+
+            <section class="idea-section">
+                <div class="section-heading-row">
+                    <div>
+                        <span class="games-kicker">ONE-TAP IDEAS</span>
+                        <h2>Or just choose</h2>
+                    </div>
+                </div>
+
+                <div class="idea-grid">
+                    <button class="idea-card" type="button" data-prompt="Make a survival game where AI and I choose the best gear for a dangerous storm on Iris.">
+                        <span class="idea-icon">🌪️</span>
+                        <strong>Storm Survival</strong>
+                        <small>Choose better gear than AI</small>
+                    </button>
+                    <button class="idea-card" type="button" data-prompt="Make a game where AI gives claims about an Iris mission document and I must catch hallucinations.">
+                        <span class="idea-icon">🕵️</span>
+                        <strong>Catch AI Lying</strong>
+                        <small>Find unsupported answers</small>
+                    </button>
+                    <button class="idea-card" type="button" data-prompt="Make an agent race where AI and I choose the minimum tools needed to prepare an Iris expedition.">
+                        <span class="idea-icon">🤖</span>
+                        <strong>Agent Race</strong>
+                        <small>Use fewer, smarter tools</small>
+                    </button>
+                    <button class="idea-card" type="button" data-prompt="Make a survival game where AI and I choose equipment for an overnight expedition on Iris.">
+                        <span class="idea-icon">🏕️</span>
+                        <strong>Expedition Battle</strong>
+                        <small>Human vs AI planning</small>
+                    </button>
+                </div>
+            </section>
+
+            <section id="generatedPreview" class="generated-preview hidden" aria-live="polite"></section>
+        </section>
+
+        <section id="gameView" class="game-view hidden" aria-live="polite">
+            <div class="game-hud">
+                <button id="exitGameButton" type="button" class="hud-button">← Lab</button>
+                <div class="scoreboard">
+                    <span>YOU <strong id="humanScore">0</strong></span>
+                    <b>VS</b>
+                    <span><strong id="aiScore">0</strong> AI</span>
+                </div>
+                <span id="roundLabel" class="round-label">Round 1</span>
+            </div>
+
+            <div id="gameStage" class="game-stage"></div>
+        </section>
+    </main>
+</body>
+</html>
