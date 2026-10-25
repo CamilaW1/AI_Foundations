@@ -1,4 +1,4 @@
-const CACHE_NAME = "ai-builder-smart-ready-v13";
+const CACHE_NAME = "ai-builder-smart-ready-v14";
 
 const APP_SHELL = [
     "./",
@@ -11,6 +11,7 @@ const APP_SHELL = [
     "./project6.html",
     "./privacy.html",
     "./auth.html",
+    "./create-games.html",
     "./manifest.webmanifest",
     "./icons/app-icon.svg",
     "./icons/app-icon-maskable.svg",
@@ -18,6 +19,7 @@ const APP_SHELL = [
     "./css/project2.css",
     "./css/project3.css",
     "./css/privacy.css",
+    "./css/create-games.css",
     "./js/home.js",
     "./js/core.js",
     "./js/app.js",
@@ -29,7 +31,8 @@ const APP_SHELL = [
     "./js/pwa.js",
     "./js/auth-config.js",
     "./js/auth.js",
-    "./js/auth-status.js"
+    "./js/auth-status.js",
+    "./js/create-games.js"
 ];
 
 self.addEventListener("install", event => {
